@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Cluster {
+  id           String @id
+  name         String
+  countries    String // Stored as JSON string
+  priorityTier Int
+  description  String
+  ports        Port[]
+}
+
+model Port {
+  id          String     @id
+  name        String
+  country     String
+  clusterId   String
+  cluster     Cluster    @relation(fields: [clusterId], references: [id])
+  latitude    Float
+  longitude   Float
+  description String?
+  terminals   Terminal[]
+}
+
+model Terminal {
+  id                      String    @id
+  name                    String
+  portId                  String
+  port                    Port      @relation(fields: [portId], references: [id])
+  latitude                Float
+  longitude               Float
+  cargoTypes              String // Stored as JSON string
+  estAnnualVolume         String?
+  ispsRiskLevel           String?
+  ispsComplianceReason    String?
+  notes                   String?
+
+  // Deep Research Fields
+  officialName            String?
+  operatorGroup           String?
+  ownership               String?
+  leadership              String? // Stored as JSON string
+  cargoSpecializations    String? // Stored as JSON string
+  infrastructure          String?
+  volumes                 String?
+  digitalizationSecurity  String?
+  
+  lastDeepResearchAt      DateTime?
+  lastDeepResearchSummary String?
+}

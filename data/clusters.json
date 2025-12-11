@@ -1,0 +1,80 @@
+[
+    {
+        "id": "ANTWERP_ROTTERDAM_NSP",
+        "name": "Antwerp–Rotterdam–North Sea Port",
+        "countries": [
+            "Belgium",
+            "Netherlands"
+        ],
+        "priorityTier": 1,
+        "description": "Supra-cluster of Antwerp, Rotterdam, North Sea Port, Zeebrugge; high ISPS pressure, drug crime, contractor overlap."
+    },
+    {
+        "id": "SPANISH_TRIAD",
+        "name": "Spanish Triad (Algeciras–Valencia–Barcelona)",
+        "countries": [
+            "Spain"
+        ],
+        "priorityTier": 1,
+        "description": "Major Spanish container and RoRo hubs with shared ferries, customs and smuggling pressure."
+    },
+    {
+        "id": "ITALIAN_LIGURIAN",
+        "name": "Italian Ligurian–Tuscany Cluster",
+        "countries": [
+            "Italy"
+        ],
+        "priorityTier": 1,
+        "description": "Genoa, La Spezia, Livorno, Piombino; mix of container, RoRo, bulk; mandate-driven environment."
+    },
+    {
+        "id": "PORTUGAL_ENERGY",
+        "name": "Portugal Energy & Container Corridor",
+        "countries": [
+            "Portugal"
+        ],
+        "priorityTier": 2,
+        "description": "Sines, Lisbon, Setúbal; strong energy/strategic focus."
+    },
+    {
+        "id": "HAROPA",
+        "name": "HAROPA (Le Havre–Rouen–Paris)",
+        "countries": [
+            "France"
+        ],
+        "priorityTier": 2,
+        "description": "Centralized French river–sea corridor; strong customs and state control."
+    },
+    {
+        "id": "GERMANY_NORTH",
+        "name": "Germany North (Hamburg–Bremerhaven–Wilhelmshaven)",
+        "countries": [
+            "Germany"
+        ],
+        "priorityTier": 2,
+        "description": "Major German container and RoRo hubs; moves later but locks hard."
+    },
+    {
+        "id": "GREECE",
+        "name": "Greece (Piraeus–Thessaloniki–Crete)",
+        "countries": [
+            "Greece"
+        ],
+        "priorityTier": 2,
+        "description": "High geopolitical sensitivity; COSCO presence and migration/smuggling routes."
+    },
+    {
+        "id": "EASTERN_SECURITY",
+        "name": "Eastern Security Corridor",
+        "countries": [
+            "Poland",
+            "Lithuania",
+            "Latvia",
+            "Estonia",
+            "Romania",
+            "Bulgaria"
+        ],
+        "priorityTier": 3,
+        "description": "Gdansk/Gdynia, Klaipeda, Riga, Tallinn, Constanta, Varna/Burgas; EU funding leverage and ISPS gaps."
+    }
+]

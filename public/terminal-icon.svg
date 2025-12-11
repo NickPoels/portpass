@@ -1,0 +1,27 @@
+<svg width="40" height="50" viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pin Shape: Acid Lime #F8FE62 -->
+  <path d="M20 0C8.954 0 0 8.954 0 20C0 35 20 50 20 50C20 50 40 35 40 20C40 8.954 31.046 0 20 0Z" fill="#F8FE62" fill-opacity="0.8"/>
+  
+  <!-- Crane Loading Ship Silhouette -->
+  <g transform="translate(6, 12) scale(0.065)">
+    <!-- Main Crane Structure -->
+    <path d="M360 400H400V120H360V400ZM360 80H420V120H360V80Z" fill="#0E0F13"/>
+    
+    <!-- Crane Boom -->
+    <path d="M120 80H360V100H120V80Z" fill="#0E0F13"/>
+    <path d="M120 80L360 40H360L120 80Z" fill="#0E0F13" opacity="0.6"/> <!-- Brace -->
+
+    <!-- Hanging Container -->
+    <rect x="180" y="100" width="10" height="80" fill="#0E0F13"/> <!-- Cable -->
+    <rect x="140" y="180" width="90" height="60" rx="4" fill="#0E0F13"/> <!-- Container -->
+    <path d="M150 190V230M170 190V230M190 190V230M210 190V230" stroke="white" stroke-width="4"/> <!-- Container details -->
+
+    <!-- Ship Hull -->
+    <path d="M40 320L80 400H300L340 320H40Z" fill="#0E0F13"/>
+    <path d="M40 340H340" stroke="white" stroke-width="10"/> <!-- Stripe -->
+
+    <!-- Waves -->
+    <path d="M20 420Q60 400 100 420T180 420T260 420T340 420" stroke="#0E0F13" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <path d="M60 450Q100 430 140 450T220 450T300 450" stroke="#0E0F13" stroke-width="12" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

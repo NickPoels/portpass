@@ -1,0 +1,272 @@
+[
+    {
+        "id": "p-antwerp",
+        "name": "Antwerp",
+        "country": "Belgium",
+        "clusterId": "ANTWERP_ROTTERDAM_NSP",
+        "latitude": 51.260,
+        "longitude": 4.360,
+        "description": "Major petrochemical and container hub."
+    },
+    {
+        "id": "p-rotterdam",
+        "name": "Rotterdam",
+        "country": "Netherlands",
+        "clusterId": "ANTWERP_ROTTERDAM_NSP",
+        "latitude": 51.920,
+        "longitude": 4.135,
+        "description": "Largest port in Europe."
+    },
+    {
+        "id": "p-vlissingen",
+        "name": "Vlissingen",
+        "country": "Netherlands",
+        "clusterId": "ANTWERP_ROTTERDAM_NSP",
+        "latitude": 51.460,
+        "longitude": 3.600,
+        "description": "Major offshore wind and project cargo hub (North Sea Port)."
+    },
+    {
+        "id": "p-terneuzen",
+        "name": "Terneuzen",
+        "country": "Netherlands",
+        "clusterId": "ANTWERP_ROTTERDAM_NSP",
+        "latitude": 51.330,
+        "longitude": 3.820,
+        "description": "Chemicals and breakbulk hub (North Sea Port)."
+    },
+    {
+        "id": "p-ghent",
+        "name": "Ghent",
+        "country": "Belgium",
+        "clusterId": "ANTWERP_ROTTERDAM_NSP",
+        "latitude": 51.050,
+        "longitude": 3.730,
+        "description": "Multimodal hub for dry bulk, steel, and RoRo (North Sea Port)."
+    },
+    {
+        "id": "p-zeebrugge",
+        "name": "Zeebrugge",
+        "country": "Belgium",
+        "clusterId": "ANTWERP_ROTTERDAM_NSP",
+        "latitude": 51.340,
+        "longitude": 3.200,
+        "description": "Key RoRo and LNG hub."
+    },
+    {
+        "id": "p-algeciras",
+        "name": "Algeciras",
+        "country": "Spain",
+        "clusterId": "SPANISH_TRIAD",
+        "latitude": 36.130,
+        "longitude": -5.445,
+        "description": "Strategic transshipment hub at Gibraltar Strait."
+    },
+    {
+        "id": "p-valencia",
+        "name": "Valencia",
+        "country": "Spain",
+        "clusterId": "SPANISH_TRIAD",
+        "latitude": 39.440,
+        "longitude": -0.325,
+        "description": "Leading container port in Mediterranean."
+    },
+    {
+        "id": "p-barcelona",
+        "name": "Barcelona",
+        "country": "Spain",
+        "clusterId": "SPANISH_TRIAD",
+        "latitude": 41.335,
+        "longitude": 2.160,
+        "description": "Diverse cargo and cruise port."
+    },
+    {
+        "id": "p-genoa",
+        "name": "Genoa",
+        "country": "Italy",
+        "clusterId": "ITALIAN_LIGURIAN",
+        "latitude": 44.410,
+        "longitude": 8.920,
+        "description": "Main gateway for Northern Italy."
+    },
+    {
+        "id": "p-laspezia",
+        "name": "La Spezia",
+        "country": "Italy",
+        "clusterId": "ITALIAN_LIGURIAN",
+        "latitude": 44.105,
+        "longitude": 9.830,
+        "description": "Container focused deep-water port."
+    },
+    {
+        "id": "p-livorno",
+        "name": "Livorno",
+        "country": "Italy",
+        "clusterId": "ITALIAN_LIGURIAN",
+        "latitude": 43.555,
+        "longitude": 10.305,
+        "description": "Mixed cargo and RoRo/Pass."
+    },
+    {
+        "id": "p-sines",
+        "name": "Sines",
+        "country": "Portugal",
+        "clusterId": "PORTUGAL_ENERGY",
+        "latitude": 37.955,
+        "longitude": -8.875,
+        "description": "Deep water energy and container port."
+    },
+    {
+        "id": "p-lisbon",
+        "name": "Lisbon",
+        "country": "Portugal",
+        "clusterId": "PORTUGAL_ENERGY",
+        "latitude": 38.690,
+        "longitude": -9.150,
+        "description": "Multiple terminals in the Tagus estuary."
+    },
+    {
+        "id": "p-setubal",
+        "name": "Setúbal",
+        "country": "Portugal",
+        "clusterId": "PORTUGAL_ENERGY",
+        "latitude": 38.520,
+        "longitude": -8.880,
+        "description": "Industrial and RoRo focus."
+    },
+    {
+        "id": "p-lehavre",
+        "name": "Le Havre",
+        "country": "France",
+        "clusterId": "HAROPA",
+        "latitude": 49.475,
+        "longitude": 0.145,
+        "description": "Largest container port in France."
+    },
+    {
+        "id": "p-rouen",
+        "name": "Rouen",
+        "country": "France",
+        "clusterId": "HAROPA",
+        "latitude": 49.445,
+        "longitude": 1.060,
+        "description": "Leading grain export port."
+    },
+    {
+        "id": "p-paris",
+        "name": "Paris",
+        "country": "France",
+        "clusterId": "HAROPA",
+        "latitude": 48.945,
+        "longitude": 2.300,
+        "description": "Inland river ports complex."
+    },
+    {
+        "id": "p-hamburg",
+        "name": "Hamburg",
+        "country": "Germany",
+        "clusterId": "GERMANY_NORTH",
+        "latitude": 53.540,
+        "longitude": 9.950,
+        "description": "Germany's largest universal port."
+    },
+    {
+        "id": "p-wilhelmshaven",
+        "name": "Wilhelmshaven",
+        "country": "Germany",
+        "clusterId": "GERMANY_NORTH",
+        "latitude": 53.600,
+        "longitude": 8.130,
+        "description": "Deep water port (JadeWeserPort)."
+    },
+    {
+        "id": "p-bremerhaven",
+        "name": "Bremerhaven",
+        "country": "Germany",
+        "clusterId": "GERMANY_NORTH",
+        "latitude": 53.560,
+        "longitude": 8.550,
+        "description": "Major car and container hub."
+    },
+    {
+        "id": "p-piraeus",
+        "name": "Piraeus",
+        "country": "Greece",
+        "clusterId": "GREECE",
+        "latitude": 37.950,
+        "longitude": 23.630,
+        "description": "Largest port in Greece, COSCO operated."
+    },
+    {
+        "id": "p-thessaloniki",
+        "name": "Thessaloniki",
+        "country": "Greece",
+        "clusterId": "GREECE",
+        "latitude": 40.640,
+        "longitude": 22.930,
+        "description": "Gateway to the Balkans."
+    },
+    {
+        "id": "p-heraklion",
+        "name": "Heraklion",
+        "country": "Greece",
+        "clusterId": "GREECE",
+        "latitude": 35.345,
+        "longitude": 25.150,
+        "description": "Main port of Crete."
+    },
+    {
+        "id": "p-gdansk",
+        "name": "Gdansk",
+        "country": "Poland",
+        "clusterId": "EASTERN_SECURITY",
+        "latitude": 54.390,
+        "longitude": 18.710,
+        "description": "Fast growing Baltic container hub."
+    },
+    {
+        "id": "p-klaipeda",
+        "name": "Klaipeda",
+        "country": "Lithuania",
+        "clusterId": "EASTERN_SECURITY",
+        "latitude": 55.690,
+        "longitude": 21.145,
+        "description": "Strategic ice-free port."
+    },
+    {
+        "id": "p-riga",
+        "name": "Riga",
+        "country": "Latvia",
+        "clusterId": "EASTERN_SECURITY",
+        "latitude": 57.000,
+        "longitude": 24.080,
+        "description": "Major forestry and bulk port."
+    },
+    {
+        "id": "p-tallinn",
+        "name": "Tallinn",
+        "country": "Estonia",
+        "clusterId": "EASTERN_SECURITY",
+        "latitude": 59.500,
+        "longitude": 24.950,
+        "description": "Diverse cargo terminals."
+    },
+    {
+        "id": "p-constanta",
+        "name": "Constanta",
+        "country": "Romania",
+        "clusterId": "EASTERN_SECURITY",
+        "latitude": 44.120,
+        "longitude": 28.650,
+        "description": "Main Black Sea gateway."
+    },
+    {
+        "id": "p-varna",
+        "name": "Varna",
+        "country": "Bulgaria",
+        "clusterId": "EASTERN_SECURITY",
+        "latitude": 43.195,
+        "longitude": 27.920,
+        "description": "Varna West and East terminals."
+    }
+]

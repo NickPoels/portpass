@@ -9,18 +9,29 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.556.0",
+    "next": "14.2.33",
+    "openai": "^6.10.0",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.33"
+    "react-leaflet": "^4.2.1"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "autoprefixer": "^10.4.22",
     "eslint": "^8",
-    "eslint-config-next": "14.2.33"
+    "eslint-config-next": "14.2.33",
+    "postcss": "^8.5.6",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   }
 }

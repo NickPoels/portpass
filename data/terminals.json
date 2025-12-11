@@ -1,0 +1,471 @@
+[
+    {
+        "id": "t1",
+        "name": "MPET Deurganckdok",
+        "portId": "p-antwerp",
+        "latitude": 51.285,
+        "longitude": 4.265,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "High"
+    },
+    {
+        "id": "t2",
+        "name": "PSA Antwerp Noordzee Terminal",
+        "portId": "p-antwerp",
+        "latitude": 51.305,
+        "longitude": 4.275,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t3",
+        "name": "APMT Maasvlakte II",
+        "portId": "p-rotterdam",
+        "latitude": 51.955,
+        "longitude": 4.020,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "High"
+    },
+    {
+        "id": "t4",
+        "name": "ECT Delta Terminal",
+        "portId": "p-rotterdam",
+        "latitude": 51.945,
+        "longitude": 4.045,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "High"
+    },
+    {
+        "id": "t5",
+        "name": "Europort Bulk Terminal",
+        "portId": "p-rotterdam",
+        "latitude": 51.930,
+        "longitude": 4.100,
+        "cargoTypes": [
+            "Dry Bulk",
+            "Break Bulk"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t6",
+        "name": "Zeebrugge RoRo & Automotive Terminal",
+        "portId": "p-zeebrugge",
+        "latitude": 51.345,
+        "longitude": 3.205,
+        "cargoTypes": [
+            "RoRo",
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t-bow-vlissingen",
+        "name": "BOW Terminal Vlissingen",
+        "portId": "p-vlissingen",
+        "latitude": 51.465,
+        "longitude": 3.610,
+        "cargoTypes": [
+            "Break Bulk",
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t-kloosterboer-vlissingen",
+        "name": "Lineage (Kloosterboer) Vlissingen",
+        "portId": "p-vlissingen",
+        "latitude": 51.460,
+        "longitude": 3.620,
+        "cargoTypes": [
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t-verbrugge-terneuzen",
+        "name": "Verbrugge Terneuzen Terminals",
+        "portId": "p-terneuzen",
+        "latitude": 51.335,
+        "longitude": 3.825,
+        "cargoTypes": [
+            "Break Bulk",
+            "RoRo",
+            "Dry Bulk"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t-yara-sluiskil",
+        "name": "Yara Sluiskil",
+        "portId": "p-terneuzen",
+        "latitude": 51.270,
+        "longitude": 3.840,
+        "cargoTypes": [
+            "Liquid Bulk",
+            "Dry Bulk"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "High"
+    },
+    {
+        "id": "t-arcelormittal-ghent",
+        "name": "ArcelorMittal Gent",
+        "portId": "p-ghent",
+        "latitude": 51.180,
+        "longitude": 3.780,
+        "cargoTypes": [
+            "Dry Bulk",
+            "Break Bulk"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t-euroports-ghent",
+        "name": "Euroports Ghent",
+        "portId": "p-ghent",
+        "latitude": 51.150,
+        "longitude": 3.760,
+        "cargoTypes": [
+            "Dry Bulk",
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t-dfds-ghent",
+        "name": "DFDS Seaways Ghent",
+        "portId": "p-ghent",
+        "latitude": 51.140,
+        "longitude": 3.750,
+        "cargoTypes": [
+            "RoRo"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t7",
+        "name": "APMT Algeciras",
+        "portId": "p-algeciras",
+        "latitude": 36.125,
+        "longitude": -5.440,
+        "cargoTypes": [
+            "Container",
+            "RoRo"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "High"
+    },
+    {
+        "id": "t8",
+        "name": "Valencia TCV",
+        "portId": "p-valencia",
+        "latitude": 39.445,
+        "longitude": -0.320,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t9",
+        "name": "Barcelona BEST",
+        "portId": "p-barcelona",
+        "latitude": 41.330,
+        "longitude": 2.155,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t10",
+        "name": "PSA Genova Pra",
+        "portId": "p-genoa",
+        "latitude": 44.425,
+        "longitude": 8.785,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t11",
+        "name": "La Spezia Container Terminal",
+        "portId": "p-laspezia",
+        "latitude": 44.105,
+        "longitude": 9.840,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t12",
+        "name": "Livorno Darsena Toscana",
+        "portId": "p-livorno",
+        "latitude": 43.565,
+        "longitude": 10.300,
+        "cargoTypes": [
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t13",
+        "name": "Terminal XXI Sines",
+        "portId": "p-sines",
+        "latitude": 37.950,
+        "longitude": -8.880,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t14",
+        "name": "Lisbon Multi-Terminal",
+        "portId": "p-lisbon",
+        "latitude": 38.695,
+        "longitude": -9.160,
+        "cargoTypes": [
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Low",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t15",
+        "name": "Setúbal RoRo/Bulk Terminal",
+        "portId": "p-setubal",
+        "latitude": 38.515,
+        "longitude": -8.865,
+        "cargoTypes": [
+            "RoRo",
+            "Dry Bulk"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t16",
+        "name": "Port 2000 Container Terminal",
+        "portId": "p-lehavre",
+        "latitude": 49.465,
+        "longitude": 0.165,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t17",
+        "name": "Rouen Grain Terminal",
+        "portId": "p-rouen",
+        "latitude": 49.440,
+        "longitude": 1.050,
+        "cargoTypes": [
+            "Dry Bulk"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t18",
+        "name": "Gennevilliers Inland Terminal",
+        "portId": "p-paris",
+        "latitude": 48.940,
+        "longitude": 2.290,
+        "cargoTypes": [
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Low",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t19",
+        "name": "HHLA Burchardkai",
+        "portId": "p-hamburg",
+        "latitude": 53.535,
+        "longitude": 9.930,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t20",
+        "name": "Eurogate Hamburg",
+        "portId": "p-hamburg",
+        "latitude": 53.520,
+        "longitude": 9.905,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t21",
+        "name": "JadeWeserPort",
+        "portId": "p-wilhelmshaven",
+        "latitude": 53.595,
+        "longitude": 8.145,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t22",
+        "name": "Bremerhaven RoRo Terminal",
+        "portId": "p-bremerhaven",
+        "latitude": 53.575,
+        "longitude": 8.560,
+        "cargoTypes": [
+            "RoRo"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t23",
+        "name": "Piraeus Container Terminal",
+        "portId": "p-piraeus",
+        "latitude": 37.955,
+        "longitude": 23.600,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "High"
+    },
+    {
+        "id": "t24",
+        "name": "Thessaloniki Port Terminal",
+        "portId": "p-thessaloniki",
+        "latitude": 40.635,
+        "longitude": 22.925,
+        "cargoTypes": [
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t25",
+        "name": "Heraklion Ferry Terminal",
+        "portId": "p-heraklion",
+        "latitude": 35.340,
+        "longitude": 25.145,
+        "cargoTypes": [
+            "Passenger/Ferry",
+            "RoRo"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Low"
+    },
+    {
+        "id": "t26",
+        "name": "DCT Gdansk",
+        "portId": "p-gdansk",
+        "latitude": 54.385,
+        "longitude": 18.720,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t27",
+        "name": "Port of Klaipeda Bulk Terminal",
+        "portId": "p-klaipeda",
+        "latitude": 55.695,
+        "longitude": 21.140,
+        "cargoTypes": [
+            "Dry Bulk",
+            "Liquid Bulk"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t28",
+        "name": "Riga Freeport Multi-Terminal",
+        "portId": "p-riga",
+        "latitude": 56.995,
+        "longitude": 24.085,
+        "cargoTypes": [
+            "Multipurpose"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t29",
+        "name": "Tallinn Muuga Harbour",
+        "portId": "p-tallinn",
+        "latitude": 59.495,
+        "longitude": 24.960,
+        "cargoTypes": [
+            "Container",
+            "Liquid Bulk"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "t30",
+        "name": "Constanta Container Terminal",
+        "portId": "p-constanta",
+        "latitude": 44.115,
+        "longitude": 28.660,
+        "cargoTypes": [
+            "Container"
+        ],
+        "estAnnualVolume": "High",
+        "ispsRiskLevel": "High"
+    },
+    {
+        "id": "t31",
+        "name": "Varna/Burgas Bulk Terminal",
+        "portId": "p-varna",
+        "latitude": 43.190,
+        "longitude": 27.915,
+        "cargoTypes": [
+            "Dry Bulk"
+        ],
+        "estAnnualVolume": "Medium",
+        "ispsRiskLevel": "Medium"
+    }
+]
