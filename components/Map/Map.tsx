@@ -2,7 +2,7 @@
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Terminal, Port, Cluster } from "@/lib/types";
+import { Terminal, Port, Cluster, PriorityTier } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 // Fix for default marker icons in Next.js
@@ -43,42 +43,58 @@ const createPortCountIcon = (count: number) => {
     });
 };
 
-// Dynamic Cluster Icon (Orange Circle with Count & Label)
-const createClusterIcon = (count: number, name: string) => {
+// Dynamic Cluster Icon (Orange Circle with Count, color-coded by priority tier, size by terminal count)
+const createClusterIcon = (count: number, priorityTier: PriorityTier, minCount: number, maxCount: number) => {
+    // Calculate dynamic size based on terminal count (32px to 60px range)
+    const minSize = 32;
+    const maxSize = 60;
+    let size = minSize;
+    if (maxCount > minCount) {
+        size = minSize + ((count - minCount) / (maxCount - minCount)) * (maxSize - minSize);
+    } else {
+        size = (minSize + maxSize) / 2; // Default to middle size if all counts are the same
+    }
+    size = Math.round(size);
+
+    // Calculate font size proportionally (12px for 32px icon, 18px for 60px icon)
+    const fontSize = Math.round(12 + ((size - minSize) / (maxSize - minSize)) * 6);
+
+    // Color coding by priority tier
+    let backgroundColor: string;
+    switch (priorityTier) {
+        case 1:
+            backgroundColor = "rgba(255, 140, 0, 0.9)"; // Dark orange for Tier 1
+            break;
+        case 2:
+            backgroundColor = "rgba(255, 165, 0, 0.8)"; // Medium orange for Tier 2
+            break;
+        case 3:
+            backgroundColor = "rgba(255, 200, 100, 0.8)"; // Light orange for Tier 3
+            break;
+        default:
+            backgroundColor = "rgba(255, 165, 0, 0.8)"; // Default to Tier 2 color
+    }
+
     return L.divIcon({
         className: "custom-cluster-icon",
         html: `
-            <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                <div style="
-                    position: absolute;
-                    top: -20px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    white-space: nowrap;
-                    font-weight: bold;
-                    color: #333;
-                    text-shadow: 0 1px 2px rgba(255,255,255,0.8);
-                    font-size: 12px;
-                    pointer-events: none;
-                ">${name}</div>
-                <div style="
-                    background-color: rgba(255, 165, 0, 0.8); 
-                    color: #fff; 
-                    font-weight: bold; 
-                    border-radius: 50%; 
-                    width: 40px; 
-                    height: 40px; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center; 
-                    font-size: 16px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                ">${count}</div>
-            </div>
+            <div style="
+                background-color: ${backgroundColor}; 
+                color: #fff; 
+                font-weight: bold; 
+                border-radius: 50%; 
+                width: ${size}px; 
+                height: ${size}px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                font-size: ${fontSize}px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            ">${count}</div>
         `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -24],
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+        popupAnchor: [0, -size / 2 - 4],
     });
 };
 
@@ -90,6 +106,9 @@ interface MapProps {
     ports: Port[];
     clusters: Cluster[];
     selectedClusterId?: string;
+    zoomToClusterId?: string;
+    zoomToPortId?: string;
+    zoomToTerminalId?: string;
     onSelectTerminal: (id: string) => void;
     onClearSelection?: () => void;
     hasActiveFilter?: boolean;
@@ -97,35 +116,74 @@ interface MapProps {
 
 const MapController = ({
     selectedClusterId,
+    zoomToClusterId,
+    zoomToPortId,
+    zoomToTerminalId,
     ports,
     terminals,
     hasActiveFilter
 }: {
     selectedClusterId?: string;
+    zoomToClusterId?: string;
+    zoomToPortId?: string;
+    zoomToTerminalId?: string;
     ports: Port[];
     terminals: Terminal[];
-    clusters: Cluster[];
     hasActiveFilter?: boolean;
 }) => {
     const map = useMap();
 
     useEffect(() => {
-        // Auto-fit bounds logic
+        // Priority: zoomTo props > hasActiveFilter > selectedClusterId
+        
+        // Handle zoom to terminal (highest priority)
+        if (zoomToTerminalId) {
+            const terminal = terminals.find(t => t.id === zoomToTerminalId);
+            if (terminal) {
+                map.setView([terminal.latitude, terminal.longitude], 12, { animate: true });
+                return;
+            }
+        }
+
+        // Handle zoom to port
+        if (zoomToPortId) {
+            const portTerminals = terminals.filter(t => t.portId === zoomToPortId);
+            if (portTerminals.length > 0) {
+                const bounds = L.latLngBounds(portTerminals.map(t => [t.latitude, t.longitude]));
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+                return;
+            }
+        }
+
+        // Handle zoom to cluster
+        if (zoomToClusterId) {
+            const clusterPorts = ports.filter(p => p.clusterId === zoomToClusterId);
+            const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+            if (clusterTerminals.length > 0) {
+                const bounds = L.latLngBounds(clusterTerminals.map(t => [t.latitude, t.longitude]));
+                map.fitBounds(bounds, { padding: [50, 50] });
+                return;
+            }
+        }
+
+        // Auto-fit bounds logic for active filters
         if (hasActiveFilter && terminals.length > 0) {
             const bounds = L.latLngBounds(terminals.map(t => [t.latitude, t.longitude]));
             map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
             return;
         }
 
+        // Handle selectedClusterId (for filter panel)
         if (selectedClusterId) {
-            // Find ports in this cluster
+            // Find terminals in this cluster
             const clusterPorts = ports.filter(p => p.clusterId === selectedClusterId);
-            if (clusterPorts.length > 0) {
-                const bounds = L.latLngBounds(clusterPorts.map(p => [p.latitude, p.longitude]));
+            const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+            if (clusterTerminals.length > 0) {
+                const bounds = L.latLngBounds(clusterTerminals.map(t => [t.latitude, t.longitude]));
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
         }
-    }, [selectedClusterId, ports, map, terminals, hasActiveFilter]);
+    }, [selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, ports, map, terminals, hasActiveFilter]);
 
     return null;
 };
@@ -140,7 +198,7 @@ const ZoomTracker = ({ onZoomChange }: { onZoomChange: (zoom: number) => void })
     return null;
 };
 
-const Map = ({ terminals, ports, clusters, selectedClusterId, onSelectTerminal, onClearSelection, hasActiveFilter }: MapProps) => {
+const Map = ({ terminals, ports, clusters, selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, onSelectTerminal, onClearSelection, hasActiveFilter }: MapProps) => {
     const [zoomLevel, setZoomLevel] = useState(4); // Default start zoom
 
     // Aggregation Logic
@@ -172,36 +230,63 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, onSelectTerminal, 
                 />
 
                 {/* Cluster Markers (Aggregated) */}
-                {showClusters && clusters.map(cluster => {
-                    // Find ports in this cluster
-                    const clusterPorts = ports.filter(p => p.clusterId === cluster.id);
-                    // Find terminals in these ports
-                    const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
-                    const terminalCount = clusterTerminals.length;
+                {showClusters && (() => {
+                    // Calculate min/max terminal counts across all clusters for size scaling
+                    const clusterTerminalCounts = clusters.map(cluster => {
+                        const clusterPorts = ports.filter(p => p.clusterId === cluster.id);
+                        const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+                        return clusterTerminals.length;
+                    }).filter(count => count > 0);
 
-                    if (terminalCount === 0) return null;
+                    const minTerminalCount = clusterTerminalCounts.length > 0 ? Math.min(...clusterTerminalCounts) : 0;
+                    const maxTerminalCount = clusterTerminalCounts.length > 0 ? Math.max(...clusterTerminalCounts) : 0;
 
-                    // Calculate Centroid
-                    const lats = clusterPorts.map(p => p.latitude);
-                    const lngs = clusterPorts.map(p => p.longitude);
-                    if (lats.length === 0) return null;
+                    return clusters.map(cluster => {
+                        // Find ports in this cluster
+                        const clusterPorts = ports.filter(p => p.clusterId === cluster.id);
+                        // Find terminals in these ports
+                        const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+                        const terminalCount = clusterTerminals.length;
 
-                    const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
-                    const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+                        if (terminalCount === 0) return null;
 
-                    return (
-                        <Marker
-                            key={cluster.id}
-                            position={[centerLat, centerLng]}
-                            icon={createClusterIcon(terminalCount, cluster.name)}
-                            eventHandlers={{
-                                click: (e) => {
-                                    e.target._map.setView([centerLat, centerLng], 8); // Zoom in to port view
-                                }
-                            }}
-                        />
-                    );
-                })}
+                        // Calculate Centroid from terminal coordinates
+                        const lats = clusterTerminals.map(t => t.latitude);
+                        const lngs = clusterTerminals.map(t => t.longitude);
+                        if (lats.length === 0) return null;
+
+                        const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+                        const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+
+                        return (
+                            <Marker
+                                key={cluster.id}
+                                position={[centerLat, centerLng]}
+                                icon={createClusterIcon(terminalCount, cluster.priorityTier, minTerminalCount, maxTerminalCount)}
+                                eventHandlers={{
+                                    click: (e) => {
+                                        e.target._map.setView([centerLat, centerLng], 8); // Zoom in to port view
+                                    }
+                                }}
+                            >
+                                <Popup>
+                                    <div className="p-1">
+                                        <h3 className="font-bold text-sm">{cluster.name}</h3>
+                                        <p className="text-xs text-gray-600">{cluster.countries.join(", ")}</p>
+                                        <div className="mt-1 text-xs">
+                                            <span className="font-semibold">Priority Tier:</span> {cluster.priorityTier}
+                                        </div>
+                                        <p className="text-xs mt-1 font-semibold">{terminalCount} Terminals</p>
+                                        {cluster.description && (
+                                            <p className="text-xs mt-1 text-gray-500 italic">{cluster.description}</p>
+                                        )}
+                                        <p className="text-xs mt-1 italic text-gray-500">Click to zoom in</p>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    });
+                })()}
 
                 {/* Port Markers (Aggregated) */}
                 {showPorts && ports.map(port => {
@@ -214,14 +299,20 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, onSelectTerminal, 
 
                     if (terminalCount === 0) return null;
 
+                    // Calculate port position from terminal coordinates (centroid)
+                    const lats = portTerminals.map(t => t.latitude);
+                    const lngs = portTerminals.map(t => t.longitude);
+                    const portLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+                    const portLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+
                     return (
                         <Marker
                             key={port.id}
-                            position={[port.latitude, port.longitude]}
+                            position={[portLat, portLng]}
                             icon={createPortCountIcon(terminalCount)}
                             eventHandlers={{
                                 click: (e) => {
-                                    e.target._map.setView([port.latitude, port.longitude], 10);
+                                    e.target._map.setView([portLat, portLng], 10);
                                 }
                             }}
                         >
@@ -254,7 +345,7 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, onSelectTerminal, 
                                     <h3 className="font-bold text-sm">{terminal.name}</h3>
                                     <p className="text-xs text-gray-600">{port?.name}, {port?.country}</p>
                                     <div className="mt-1 text-xs">
-                                        <span className="font-semibold">Vol:</span> {terminal.estAnnualVolume}
+                                        <span className="font-semibold">Capacity:</span> {terminal.capacity}
                                     </div>
                                     <div className="mt-1">
                                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${terminal.ispsRiskLevel === 'High' || terminal.ispsRiskLevel === 'Very High'
@@ -272,9 +363,11 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, onSelectTerminal, 
 
                 <MapController
                     selectedClusterId={selectedClusterId}
+                    zoomToClusterId={zoomToClusterId}
+                    zoomToPortId={zoomToPortId}
+                    zoomToTerminalId={zoomToTerminalId}
                     ports={ports}
                     terminals={terminals}
-                    clusters={clusters}
                     hasActiveFilter={hasActiveFilter}
                 />
             </MapContainer>

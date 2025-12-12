@@ -40,8 +40,6 @@ async function main() {
                 name: port.name,
                 country: port.country,
                 clusterId: port.clusterId,
-                latitude: port.latitude,
-                longitude: port.longitude,
                 description: port.description,
             },
             create: {
@@ -49,8 +47,6 @@ async function main() {
                 name: port.name,
                 country: port.country,
                 clusterId: port.clusterId,
-                latitude: port.latitude,
-                longitude: port.longitude,
                 description: port.description,
             },
         });
@@ -63,10 +59,6 @@ async function main() {
         // Need to serialize 'cargoTypes' array to string
         const cargoTypesStr = JSON.stringify(terminal.cargoTypes || []);
 
-        // Also check if deep research fields exist
-        const leadershipStr = terminal.leadership ? JSON.stringify(terminal.leadership) : null;
-        const cargoSpecializationsStr = terminal.cargoSpecializations ? JSON.stringify(terminal.cargoSpecializations) : null;
-
         await prisma.terminal.upsert({
             where: { id: terminal.id },
             update: {
@@ -75,17 +67,11 @@ async function main() {
                 latitude: terminal.latitude,
                 longitude: terminal.longitude,
                 cargoTypes: cargoTypesStr,
-                estAnnualVolume: terminal.estAnnualVolume,
+                capacity: terminal.capacity,
                 ispsRiskLevel: terminal.ispsRiskLevel,
                 notes: terminal.notes,
-                officialName: terminal.officialName,
                 operatorGroup: terminal.operatorGroup,
                 ownership: terminal.ownership,
-                leadership: leadershipStr,
-                cargoSpecializations: cargoSpecializationsStr,
-                infrastructure: terminal.infrastructure,
-                volumes: terminal.volumes,
-                digitalizationSecurity: terminal.digitalizationSecurity,
                 lastDeepResearchAt: terminal.lastDeepResearchAt ? new Date(terminal.lastDeepResearchAt) : null,
                 lastDeepResearchSummary: terminal.lastDeepResearchSummary,
             },
@@ -96,17 +82,11 @@ async function main() {
                 latitude: terminal.latitude,
                 longitude: terminal.longitude,
                 cargoTypes: cargoTypesStr,
-                estAnnualVolume: terminal.estAnnualVolume,
+                capacity: terminal.capacity,
                 ispsRiskLevel: terminal.ispsRiskLevel,
                 notes: terminal.notes,
-                officialName: terminal.officialName,
                 operatorGroup: terminal.operatorGroup,
                 ownership: terminal.ownership,
-                leadership: leadershipStr,
-                cargoSpecializations: cargoSpecializationsStr,
-                infrastructure: terminal.infrastructure,
-                volumes: terminal.volumes,
-                digitalizationSecurity: terminal.digitalizationSecurity,
                 lastDeepResearchAt: terminal.lastDeepResearchAt ? new Date(terminal.lastDeepResearchAt) : null,
                 lastDeepResearchSummary: terminal.lastDeepResearchSummary,
             },

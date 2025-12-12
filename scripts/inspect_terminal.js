@@ -16,17 +16,12 @@ async function main() {
 
     console.log("=== TERMINAL DATA ===");
     console.log(`Name: ${term.name}`);
-    console.log(`Official Name: ${term.officialName}`);
     console.log(`Operator: ${term.operatorGroup}`);
     console.log(`Port: ${term.port.name}`);
     console.log(`Coordinates: ${term.latitude}, ${term.longitude}`);
     console.log(`Cargo Types: ${term.cargoTypes}`);
-    console.log(`Volume: ${term.estAnnualVolume}`);
-    console.log(`Volumes (Research): ${term.volumes}`);
-    console.log(`Infrastructure: ${term.infrastructure}`);
+    console.log(`Capacity: ${term.capacity}`);
     console.log(`ISPS Level: ${term.ispsRiskLevel}`);
-    console.log(`ISPS Reason: ${term.ispsComplianceReason}`);
-    console.log(`Leadership: ${term.leadership}`);
     console.log(`Research Summary: ${term.lastDeepResearchSummary}`);
 }
 

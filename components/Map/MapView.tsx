@@ -17,6 +17,9 @@ interface MapViewProps {
     ports: Port[];
     clusters: Cluster[];
     selectedClusterId?: string;
+    zoomToClusterId?: string;
+    zoomToPortId?: string;
+    zoomToTerminalId?: string;
     onSelectTerminal?: (id: string) => void;
     onClearSelection?: () => void;
     hasActiveFilter?: boolean;

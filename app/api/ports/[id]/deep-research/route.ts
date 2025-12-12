@@ -5,9 +5,7 @@ import OpenAI from 'openai';
 // Force node runtime for network calls and streaming
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-// Set max duration to 60s (or more if platform allows) for long research
 export const maxDuration = 300;
-
 
 export async function POST(
     request: NextRequest,
@@ -41,16 +39,16 @@ export async function POST(
         apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const terminalId = params.id;
+    const portId = params.id;
 
-    // 1. Validate Terminal
-    const terminal = await prisma.terminal.findUnique({
-        where: { id: terminalId },
-        include: { port: true },
+    // 1. Validate Port
+    const port = await prisma.port.findUnique({
+        where: { id: portId },
+        include: { cluster: true, terminals: true },
     });
 
-    if (!terminal) {
-        return new Response(JSON.stringify({ error: 'Terminal not found' }), {
+    if (!port) {
+        return new Response(JSON.stringify({ error: 'Port not found' }), {
             status: 404,
             headers: { 'Content-Type': 'application/json' },
         });
@@ -84,7 +82,7 @@ export async function POST(
                     body: JSON.stringify({
                         model: 'sonar-deep-research',
                         messages: [
-                            { role: 'system', content: 'You are a maritime research assistant. Always cite your sources.' },
+                            { role: 'system', content: 'You are a maritime and port governance research assistant. Always cite your sources.' },
                             { role: 'user', content: query },
                         ],
                         temperature: 0.1,
@@ -109,13 +107,11 @@ export async function POST(
                 const pplxJson = await pplxRes.json();
                 const content = pplxJson.choices[0]?.message?.content || '';
                 
-                // Extract sources from citations (Perplexity often includes [1], [2] etc.)
+                // Extract sources from citations
                 const sources: string[] = [];
                 const citationRegex = /\[(\d+)\]/g;
                 const matches = content.match(citationRegex);
                 if (matches) {
-                    // Try to extract source URLs or names from the response
-                    // This is a simplified extraction - Perplexity's actual source format may vary
                     sources.push(...matches.map((_, i) => `Source ${i + 1}`));
                 }
 
@@ -129,7 +125,8 @@ export async function POST(
                 // Source quality (0.3 max)
                 const hasOfficialSource = content.toLowerCase().includes('port authority') || 
                                          content.toLowerCase().includes('official') ||
-                                         content.toLowerCase().includes('government');
+                                         content.toLowerCase().includes('government') ||
+                                         content.toLowerCase().includes('customs');
                 const hasDirectory = content.toLowerCase().includes('directory') || 
                                    content.toLowerCase().includes('maritime');
                 if (hasOfficialSource) score += 0.3;
@@ -141,7 +138,7 @@ export async function POST(
                 else if (sources.length === 1) score += 0.15;
                 else score += 0.05;
                 
-                // Recency (0.2 max) - check for year mentions
+                // Recency (0.2 max)
                 const yearMatch = content.match(/\b(20\d{2})\b/);
                 if (yearMatch) {
                     const year = parseInt(yearMatch[1]);
@@ -151,7 +148,7 @@ export async function POST(
                     else if (age <= 3) score += 0.1;
                     else score += 0.05;
                 } else {
-                    score += 0.1; // Default if no year found
+                    score += 0.1;
                 }
                 
                 // Completeness (0.2 max)
@@ -166,7 +163,7 @@ export async function POST(
             
             try {
                 // --- STEP 1: INITIALIZE ---
-                sendEvent('status', { message: 'Initializing research...', step: 'init', progress: 0 });
+                sendEvent('status', { message: 'Initializing port research...', step: 'init', progress: 0 });
                 
                 if (abortSignal.aborted) {
                     throw new Error('Request aborted');
@@ -175,69 +172,78 @@ export async function POST(
                 // --- STEP 2: MULTI-QUERY RESEARCH ---
                 const researchQueries: Array<{ query: string; result: string; sources: string[] }> = [];
                 
-                // Query 1: Identity & Location
-                sendEvent('status', { message: 'Querying identity and location...', step: 'query_1', progress: 20 });
+                // Query 1: Governance
+                sendEvent('status', { message: 'Researching governance structure...', step: 'query_1', progress: 15 });
                 try {
-                    const query1 = `What is the exact location (latitude, longitude) of ${terminal.name} in ${terminal.port.name}, ${terminal.port.country}? Is ${terminal.name} located in ${terminal.port.name} or a different port?`;
-                    const result1 = await executePerplexityQuery(query1, 'identity_location');
+                    const query1 = `Who is the port authority for ${port.name} in ${port.country}? What customs authority oversees this port? What is the governance structure and decision-making process?`;
+                    const result1 = await executePerplexityQuery(query1, 'governance');
                     researchQueries.push({ query: query1, result: result1.content, sources: result1.sources });
-                    sendEvent('status', { message: 'Analyzing location data...', step: 'query_1_analysis', progress: 25 });
+                    sendEvent('status', { message: 'Analyzing governance data...', step: 'query_1_analysis', progress: 20 });
                 } catch (e) {
-                    sendEvent('status', { message: 'Warning: Location query failed, continuing...', step: 'query_1', progress: 25, details: 'Continuing with available data' });
+                    sendEvent('status', { message: 'Warning: Governance query failed, continuing...', step: 'query_1', progress: 20 });
                 }
 
-                // Query 2: Capacity & Operations
-                sendEvent('status', { message: 'Querying capacity and operations...', step: 'query_2', progress: 40 });
+                // Query 2: Identity Systems
+                sendEvent('status', { message: 'Researching identity systems...', step: 'query_2', progress: 35 });
                 try {
-                    const query2 = `What is the annual capacity in TEU or tonnage of ${terminal.name}? What specific cargo types does ${terminal.name} handle?`;
-                    const result2 = await executePerplexityQuery(query2, 'capacity_operations');
+                    const query2 = `What identity or access control systems are used at ${port.name}? Are there systems like AlfaPass, CargoCard, or local badge systems? What is the adoption rate of port-wide identity systems?`;
+                    const result2 = await executePerplexityQuery(query2, 'identity_systems');
                     researchQueries.push({ query: query2, result: result2.content, sources: result2.sources });
-                    sendEvent('status', { message: 'Analyzing capacity data...', step: 'query_2_analysis', progress: 45 });
+                    sendEvent('status', { message: 'Analyzing identity systems...', step: 'query_2_analysis', progress: 40 });
                 } catch (e) {
-                    sendEvent('status', { message: 'Warning: Capacity query failed, continuing...', step: 'query_2', progress: 45, details: 'Continuing with available data' });
+                    sendEvent('status', { message: 'Warning: Identity systems query failed, continuing...', step: 'query_2', progress: 40 });
                 }
 
-                // Query 3: Ownership & Management
-                sendEvent('status', { message: 'Querying ownership and management...', step: 'query_3', progress: 60 });
+                // Query 3: ISPS Risk & Enforcement
+                sendEvent('status', { message: 'Researching ISPS risk and enforcement...', step: 'query_3', progress: 55 });
                 try {
-                    const currentOperator = terminal.operatorGroup || 'unknown operator';
-                    const query3 = `Who operates ${terminal.name}? What is the ownership structure? Is ${terminal.name} owned by ${currentOperator} or a different company?`;
-                    const result3 = await executePerplexityQuery(query3, 'ownership_management');
+                    const query3 = `What is the ISPS security risk level at ${port.name}? How strong is ISPS enforcement? Have there been security incidents or drug-related crime?`;
+                    const result3 = await executePerplexityQuery(query3, 'isps_risk');
                     researchQueries.push({ query: query3, result: result3.content, sources: result3.sources });
-                    sendEvent('status', { message: 'Analyzing ownership data...', step: 'query_3_analysis', progress: 65 });
+                    sendEvent('status', { message: 'Analyzing ISPS data...', step: 'query_3_analysis', progress: 60 });
                 } catch (e) {
-                    sendEvent('status', { message: 'Warning: Ownership query failed, continuing...', step: 'query_3', progress: 65, details: 'Continuing with available data' });
+                    sendEvent('status', { message: 'Warning: ISPS query failed, continuing...', step: 'query_3', progress: 60 });
                 }
 
-                // Query 4: Security & Compliance
-                sendEvent('status', { message: 'Querying security and compliance...', step: 'query_4', progress: 80 });
+                // Query 4: System Landscape
+                sendEvent('status', { message: 'Researching system landscape...', step: 'query_4', progress: 75 });
                 try {
-                    const query4 = `What is the ISPS security level of ${terminal.name}? Has ${terminal.name} had any security incidents or compliance issues?`;
-                    const result4 = await executePerplexityQuery(query4, 'security_compliance');
+                    const query4 = `What Terminal Operating Systems (TOS) and Access Control Systems (ACS) are commonly used at terminals in ${port.name}? What are the dominant systems?`;
+                    const result4 = await executePerplexityQuery(query4, 'system_landscape');
                     researchQueries.push({ query: query4, result: result4.content, sources: result4.sources });
-                    sendEvent('status', { message: 'Analyzing security data...', step: 'query_4_analysis', progress: 85 });
+                    sendEvent('status', { message: 'Analyzing system landscape...', step: 'query_4_analysis', progress: 80 });
                 } catch (e) {
-                    sendEvent('status', { message: 'Warning: Security query failed, continuing...', step: 'query_4', progress: 85, details: 'Continuing with available data' });
+                    sendEvent('status', { message: 'Warning: System landscape query failed, continuing...', step: 'query_4', progress: 80 });
                 }
 
-                // Query 5: Verification
-                sendEvent('status', { message: 'Verifying findings...', step: 'query_5', progress: 90 });
+                // Query 5: Strategic Intelligence
+                sendEvent('status', { message: 'Researching strategic intelligence...', step: 'query_5', progress: 85 });
+                try {
+                    const query5 = `What are the network effects and cluster dynamics for ${port.name}? How does it coordinate with other ports in the ${port.cluster.name} cluster? What are expansion opportunities?`;
+                    const result5 = await executePerplexityQuery(query5, 'strategic_intelligence');
+                    researchQueries.push({ query: query5, result: result5.content, sources: result5.sources });
+                    sendEvent('status', { message: 'Analyzing strategic data...', step: 'query_5_analysis', progress: 90 });
+                } catch (e) {
+                    sendEvent('status', { message: 'Warning: Strategic intelligence query failed, continuing...', step: 'query_5', progress: 90 });
+                }
+
+                // Query 6: Verification
+                sendEvent('status', { message: 'Verifying findings...', step: 'query_6', progress: 92 });
                 try {
                     const allFindings = researchQueries.map(q => q.result).join('\n\n');
-                    const query5 = `Verify the following information about ${terminal.name}:\n\n${allFindings}\n\nPlease confirm accuracy and identify any discrepancies.`;
-                    const result5 = await executePerplexityQuery(query5, 'verification');
-                    researchQueries.push({ query: query5, result: result5.content, sources: result5.sources });
+                    const query6 = `Verify the following information about ${port.name}:\n\n${allFindings}\n\nPlease confirm accuracy and identify any discrepancies.`;
+                    const result6 = await executePerplexityQuery(query6, 'verification');
+                    researchQueries.push({ query: query6, result: result6.content, sources: result6.sources });
                 } catch (e) {
-                    sendEvent('status', { message: 'Warning: Verification query failed, continuing...', step: 'query_5', progress: 92, details: 'Continuing with available data' });
+                    sendEvent('status', { message: 'Warning: Verification query failed, continuing...', step: 'query_6', progress: 93 });
                 }
 
                 // Combine all research results
                 const researchText = researchQueries.map(q => q.result).join('\n\n---\n\n');
 
                 // --- STEP 3: EXTRACT STRUCTURED DATA ---
-                sendEvent('status', { message: 'Extracting structured data...', step: 'extract', progress: 92 });
+                sendEvent('status', { message: 'Extracting structured data...', step: 'extract', progress: 93 });
                 
-                // Truncate researchText for extract if too long (keep first 8000 chars ~2000 tokens)
                 const extractResearchText = researchText.length > 8000 ? researchText.substring(0, 8000) + '\n\n[... truncated for token limits ...]' : researchText;
                 
                 const extractPrompt = `
@@ -246,25 +252,27 @@ Extract structured data from the research findings below. Return ONLY the data f
 RESEARCH FINDINGS:
 ${extractResearchText}
 
-CURRENT TERMINAL DATA:
-- Name: ${terminal.name}
-- Port: ${terminal.port.name} (${terminal.port.country})
-- Operator: ${terminal.operatorGroup || 'unknown'}
-- Ownership: ${terminal.ownership || 'unknown'}
-- Capacity: ${terminal.capacity || 'unknown'}
-- ISPS Level: ${terminal.ispsRiskLevel || 'unknown'}
-- Cargo Types: ${typeof terminal.cargoTypes === 'string' ? terminal.cargoTypes : JSON.stringify(terminal.cargoTypes)}
-- Coordinates: ${terminal.latitude}, ${terminal.longitude}
+CURRENT PORT DATA:
+- Name: ${port.name}
+- Country: ${port.country}
+- Cluster: ${port.cluster.name}
+- Port Authority: ${port.portAuthority || 'unknown'}
+- Customs Authority: ${port.customsAuthority || 'unknown'}
+- Identity System: ${port.portWideIdentitySystem || 'unknown'}
+- ISPS Risk: ${port.portLevelISPSRisk || 'unknown'}
+- Enforcement: ${port.ispsEnforcementStrength || 'unknown'}
 
 Return JSON:
 {
-  "operator_group": "string | null",
-  "ownership": "string | null",
-  "cargo_types": ["string"] | null,
-  "isps_level": "Low | Medium | High | Very High | null",
-  "capacity": "string | null",
-  "suggested_port_name": "string | null",
-  "new_coordinates": { "lat": number, "lon": number } | null
+  "port_authority": "string | null",
+  "customs_authority": "string | null",
+  "port_wide_identity_system": "string | null",
+  "identity_competitors": ["string"] | null,
+  "identity_adoption_rate": "string | null",
+  "port_level_isps_risk": "Low | Medium | High | Very High | null",
+  "isps_enforcement_strength": "Weak | Moderate | Strong | Very Strong | null",
+  "dominant_tos_systems": ["string"] | null,
+  "dominant_acs_systems": ["string"] | null
 }
 `;
 
@@ -304,51 +312,62 @@ Return JSON:
                 }
 
                 // --- STEP 4: CALCULATE CONFIDENCE SCORES ---
-                sendEvent('status', { message: 'Calculating confidence scores...', step: 'confidence', progress: 92 });
+                sendEvent('status', { message: 'Calculating confidence scores...', step: 'confidence', progress: 94 });
                 
-                // Calculate confidence for each field based on research results
                 const fieldConfidences: Record<string, number> = {};
                 const allSources = researchQueries.flatMap(q => q.sources);
                 
-                if (extractedData.operator_group) {
-                    fieldConfidences.operatorGroup = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('operates') || q.query.includes('ownership'))?.result || '',
+                if (extractedData.port_authority) {
+                    fieldConfidences.portAuthority = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('port authority') || q.query.includes('governance'))?.result || '',
                         allSources
                     );
                 }
-                if (extractedData.ownership) {
-                    fieldConfidences.ownership = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('ownership'))?.result || '',
+                if (extractedData.customs_authority) {
+                    fieldConfidences.customsAuthority = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('customs'))?.result || '',
                         allSources
                     );
                 }
-                if (extractedData.capacity) {
-                    fieldConfidences.capacity = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('capacity'))?.result || '',
+                if (extractedData.port_wide_identity_system) {
+                    fieldConfidences.portWideIdentitySystem = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('identity') || q.query.includes('AlfaPass') || q.query.includes('CargoCard'))?.result || '',
                         allSources
                     );
                 }
-                if (extractedData.isps_level) {
-                    fieldConfidences.ispsRiskLevel = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('ISPS') || q.query.includes('security'))?.result || '',
+                if (extractedData.identity_competitors) {
+                    fieldConfidences.identityCompetitors = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('identity') || q.query.includes('competitor'))?.result || '',
                         allSources
                     );
                 }
-                if (extractedData.cargo_types) {
-                    fieldConfidences.cargoTypes = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('cargo'))?.result || '',
+                if (extractedData.identity_adoption_rate) {
+                    fieldConfidences.identityAdoptionRate = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('adoption') || q.query.includes('identity'))?.result || '',
                         allSources
                     );
                 }
-                if (extractedData.new_coordinates) {
-                    fieldConfidences.coordinates = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('location') || q.query.includes('latitude'))?.result || '',
+                if (extractedData.port_level_isps_risk) {
+                    fieldConfidences.portLevelISPSRisk = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('ISPS') || q.query.includes('risk'))?.result || '',
                         allSources
                     );
                 }
-                if (extractedData.suggested_port_name) {
-                    fieldConfidences.portId = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('port'))?.result || '',
+                if (extractedData.isps_enforcement_strength) {
+                    fieldConfidences.ispsEnforcementStrength = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('enforcement') || q.query.includes('ISPS'))?.result || '',
+                        allSources
+                    );
+                }
+                if (extractedData.dominant_tos_systems) {
+                    fieldConfidences.dominantTOSSystems = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('TOS') || q.query.includes('Terminal Operating'))?.result || '',
+                        allSources
+                    );
+                }
+                if (extractedData.dominant_acs_systems) {
+                    fieldConfidences.dominantACSSystems = calculateConfidence(
+                        researchQueries.find(q => q.query.includes('ACS') || q.query.includes('Access Control'))?.result || '',
                         allSources
                     );
                 }
@@ -369,43 +388,39 @@ Return JSON:
 
                 const fieldProposals: FieldProposal[] = [];
                 const fieldsToAnalyze = [
-                    { key: 'operatorGroup', label: 'Operator Group', extracted: extractedData.operator_group, current: terminal.operatorGroup },
-                    { key: 'ownership', label: 'Ownership', extracted: extractedData.ownership, current: terminal.ownership },
-                    { key: 'capacity', label: 'Capacity', extracted: extractedData.capacity, current: terminal.capacity },
-                    { key: 'ispsRiskLevel', label: 'ISPS Risk Level', extracted: extractedData.isps_level, current: terminal.ispsRiskLevel },
-                    { key: 'cargoTypes', label: 'Cargo Types', extracted: extractedData.cargo_types, current: typeof terminal.cargoTypes === 'string' ? JSON.parse(terminal.cargoTypes) : terminal.cargoTypes },
-                    { key: 'coordinates', label: 'Coordinates', extracted: extractedData.new_coordinates, current: { lat: terminal.latitude, lon: terminal.longitude } },
-                    { key: 'portId', label: 'Port', extracted: extractedData.suggested_port_name, current: terminal.port.name },
+                    { key: 'portAuthority', label: 'Port Authority', extracted: extractedData.port_authority, current: port.portAuthority },
+                    { key: 'customsAuthority', label: 'Customs Authority', extracted: extractedData.customs_authority, current: port.customsAuthority },
+                    { key: 'portWideIdentitySystem', label: 'Port-Wide Identity System', extracted: extractedData.port_wide_identity_system, current: port.portWideIdentitySystem },
+                    { key: 'identityCompetitors', label: 'Identity Competitors', extracted: extractedData.identity_competitors, current: port.identityCompetitors ? JSON.parse(port.identityCompetitors) : null },
+                    { key: 'identityAdoptionRate', label: 'Identity Adoption Rate', extracted: extractedData.identity_adoption_rate, current: port.identityAdoptionRate },
+                    { key: 'portLevelISPSRisk', label: 'Port-Level ISPS Risk', extracted: extractedData.port_level_isps_risk, current: port.portLevelISPSRisk },
+                    { key: 'ispsEnforcementStrength', label: 'ISPS Enforcement Strength', extracted: extractedData.isps_enforcement_strength, current: port.ispsEnforcementStrength },
+                    { key: 'dominantTOSSystems', label: 'Dominant TOS Systems', extracted: extractedData.dominant_tos_systems, current: port.dominantTOSSystems ? JSON.parse(port.dominantTOSSystems) : null },
+                    { key: 'dominantACSSystems', label: 'Dominant ACS Systems', extracted: extractedData.dominant_acs_systems, current: port.dominantACSSystems ? JSON.parse(port.dominantACSSystems) : null },
                 ];
 
-                // Batch field analysis into a single call to reduce token usage
                 const fieldsWithData = fieldsToAnalyze.filter(f => f.extracted);
                 
                 if (fieldsWithData.length > 0) {
-                    sendEvent('status', { message: 'Analyzing field updates...', step: 'llm_analysis', progress: 95 });
-                    
-                    // Build relevant research context for each field (only include relevant queries)
                     const getRelevantResearch = (fieldKey: string): string => {
-                        if (fieldKey === 'operatorGroup' || fieldKey === 'ownership') {
-                            return researchQueries.find(q => q.query.includes('operates') || q.query.includes('ownership'))?.result || '';
-                        } else if (fieldKey === 'capacity' || fieldKey === 'cargoTypes') {
-                            return researchQueries.find(q => q.query.includes('capacity') || q.query.includes('cargo'))?.result || '';
-                        } else if (fieldKey === 'ispsRiskLevel') {
+                        if (fieldKey === 'portAuthority' || fieldKey === 'customsAuthority') {
+                            return researchQueries.find(q => q.query.includes('governance') || q.query.includes('authority'))?.result || '';
+                        } else if (fieldKey.includes('identity')) {
+                            return researchQueries.find(q => q.query.includes('identity'))?.result || '';
+                        } else if (fieldKey.includes('ISPS') || fieldKey.includes('isps')) {
                             return researchQueries.find(q => q.query.includes('ISPS') || q.query.includes('security'))?.result || '';
-                        } else if (fieldKey === 'coordinates') {
-                            return researchQueries.find(q => q.query.includes('location') || q.query.includes('latitude'))?.result || '';
-                        } else if (fieldKey === 'portId') {
-                            return researchQueries.find(q => q.query.includes('port'))?.result || '';
+                        } else if (fieldKey.includes('TOS') || fieldKey.includes('ACS')) {
+                            return researchQueries.find(q => q.query.includes('system') || q.query.includes('TOS') || q.query.includes('ACS'))?.result || '';
                         }
-                        return ''; // No relevant research
+                        return '';
                     };
                     
-                    // Create a single batch analysis prompt for all fields
                     const batchAnalysisPrompt = `
-You are evaluating whether to update multiple terminal database fields. Analyze each field independently.
+You are evaluating whether to update multiple port database fields. Analyze each field independently.
 
-TERMINAL: ${terminal.name}
-PORT: ${terminal.port.name} (${terminal.port.country})
+PORT: ${port.name}
+COUNTRY: ${port.country}
+CLUSTER: ${port.cluster.name}
 
 FIELDS TO EVALUATE:
 ${fieldsWithData.map(f => `
@@ -420,7 +435,7 @@ ${getRelevantResearch(f.key).substring(0, 2000)}${getRelevantResearch(f.key).len
 For each field, evaluate:
 1. Should this field be updated? (Consider if proposed value is more accurate/complete)
 2. Why or why not? (Provide reasoning)
-3. What is the update priority? (high/medium/low - high for critical fields like coordinates, capacity, operator)
+3. What is the update priority? (high/medium/low - high for governance and identity systems)
 
 Return JSON object with "analyses" array:
 {
@@ -445,36 +460,22 @@ Return JSON object with "analyses" array:
                         });
 
                         const batchAnalysis = JSON.parse(batchAnalysisRes.choices[0].message.content || '{}');
-                        const analyses = Array.isArray(batchAnalysis.analyses) ? batchAnalysis.analyses : (Array.isArray(batchAnalysis) ? batchAnalysis : []);
+                        const analyses = Array.isArray(batchAnalysis.analyses) ? batchAnalysis.analyses : [];
 
-                        // Map analyses to field proposals with improved matching
                         for (const fieldInfo of fieldsWithData) {
-                            // Try multiple matching strategies for field names (handle variations from LLM)
                             const analysis = analyses.find((a: any) => {
                                 if (!a.field) return false;
                                 const aField = String(a.field).toLowerCase().trim();
                                 const keyLower = fieldInfo.key.toLowerCase();
                                 const labelLower = fieldInfo.label.toLowerCase();
                                 
-                                // Exact match
                                 if (aField === keyLower || aField === labelLower) return true;
-                                
-                                // Partial matches
                                 if (aField.includes(keyLower) || keyLower.includes(aField)) return true;
                                 if (aField.includes(labelLower) || labelLower.includes(aField)) return true;
                                 
-                                // Special cases for operatorGroup and ownership
-                                if (fieldInfo.key === 'operatorGroup' && (aField.includes('operator') || aField.includes('group'))) return true;
-                                if (fieldInfo.key === 'ownership' && aField.includes('ownership')) return true;
-                                
-                                // Handle snake_case variations
-                                const keySnake = fieldInfo.key.replace(/([A-Z])/g, '_$1').toLowerCase();
-                                if (aField === keySnake || aField.includes(keySnake)) return true;
-                                
                                 return false;
-                            }) || analyses[fieldsWithData.indexOf(fieldInfo)] || {};
+                            }) || {};
                             
-                            // Default shouldUpdate to true if analysis is empty (let user decide in preview)
                             const shouldUpdate = analysis.shouldUpdate !== undefined ? analysis.shouldUpdate : true;
                             
                             fieldProposals.push({
@@ -485,11 +486,11 @@ Return JSON object with "analyses" array:
                                 shouldUpdate,
                                 reasoning: analysis.reasoning || 'No specific reasoning provided',
                                 sources: allSources,
-                                updatePriority: analysis.updatePriority || (['coordinates', 'capacity', 'operatorGroup'].includes(fieldInfo.key) ? 'high' : 'medium')
+                                updatePriority: analysis.updatePriority || (['portAuthority', 'portWideIdentitySystem'].includes(fieldInfo.key) ? 'high' : 'medium')
                             });
                         }
                     } catch (e) {
-                        // Fallback: use simple comparison for each field
+                        // Fallback: use simple comparison
                         for (const fieldInfo of fieldsWithData) {
                             const shouldUpdate = fieldInfo.current !== fieldInfo.extracted && 
                                                (fieldConfidences[fieldInfo.key] || 0.5) >= 0.5;
@@ -501,16 +502,15 @@ Return JSON object with "analyses" array:
                                 shouldUpdate,
                                 reasoning: shouldUpdate ? 'Proposed value differs from current and has sufficient confidence' : 'Insufficient confidence or no change needed',
                                 sources: allSources,
-                                updatePriority: ['coordinates', 'capacity', 'operatorGroup'].includes(fieldInfo.key) ? 'high' : 'medium'
+                                updatePriority: ['portAuthority', 'portWideIdentitySystem'].includes(fieldInfo.key) ? 'high' : 'medium'
                             });
                         }
                     }
                 }
 
-
-                // Generate research summary (truncate if needed)
+                // Generate research summary
                 const summaryResearchText = researchText.length > 4000 ? researchText.substring(0, 4000) + '\n[... truncated ...]' : researchText;
-                const summaryPrompt = `Summarize the key findings from this terminal research in 2-3 sentences:\n\n${summaryResearchText}`;
+                const summaryPrompt = `Summarize the key findings from this port research in 2-3 sentences:\n\n${summaryResearchText}`;
                 let researchSummary = '';
                 try {
                     const summaryRes = await openai.chat.completions.create({
@@ -525,60 +525,72 @@ Return JSON object with "analyses" array:
 
                 // Validate extractedData fields
                 const validISPSLevels = ['Low', 'Medium', 'High', 'Very High'];
-                if (extractedData.isps_level && !validISPSLevels.includes(extractedData.isps_level)) {
+                if (extractedData.port_level_isps_risk && !validISPSLevels.includes(extractedData.port_level_isps_risk)) {
                     throw {
                         category: 'VALIDATION_ERROR',
                         message: 'Received unexpected data format. Please try again.',
-                        originalError: `Invalid ISPS level: ${extractedData.isps_level}`,
+                        originalError: `Invalid ISPS level: ${extractedData.port_level_isps_risk}`,
                         retryable: false
                     };
                 }
-                if (extractedData.cargo_types && !Array.isArray(extractedData.cargo_types)) {
+                const validEnforcementLevels = ['Weak', 'Moderate', 'Strong', 'Very Strong'];
+                if (extractedData.isps_enforcement_strength && !validEnforcementLevels.includes(extractedData.isps_enforcement_strength)) {
                     throw {
                         category: 'VALIDATION_ERROR',
                         message: 'Received unexpected data format. Please try again.',
-                        originalError: 'Invalid cargo_types: must be an array',
+                        originalError: `Invalid enforcement strength: ${extractedData.isps_enforcement_strength}`,
                         retryable: false
                     };
                 }
-                if (extractedData.new_coordinates) {
-                    if (typeof extractedData.new_coordinates.lat !== 'number' || 
-                        typeof extractedData.new_coordinates.lon !== 'number' ||
-                        isNaN(extractedData.new_coordinates.lat) || 
-                        isNaN(extractedData.new_coordinates.lon)) {
-                        throw {
-                            category: 'VALIDATION_ERROR',
-                            message: 'Received unexpected data format. Please try again.',
-                            originalError: 'Invalid coordinates: lat and lon must be valid numbers',
-                            retryable: false
-                        };
-                    }
+                if (extractedData.identity_competitors && !Array.isArray(extractedData.identity_competitors)) {
+                    throw {
+                        category: 'VALIDATION_ERROR',
+                        message: 'Received unexpected data format. Please try again.',
+                        originalError: 'Invalid identity_competitors: must be an array',
+                        retryable: false
+                    };
+                }
+                if (extractedData.dominant_tos_systems && !Array.isArray(extractedData.dominant_tos_systems)) {
+                    throw {
+                        category: 'VALIDATION_ERROR',
+                        message: 'Received unexpected data format. Please try again.',
+                        originalError: 'Invalid dominant_tos_systems: must be an array',
+                        retryable: false
+                    };
+                }
+                if (extractedData.dominant_acs_systems && !Array.isArray(extractedData.dominant_acs_systems)) {
+                    throw {
+                        category: 'VALIDATION_ERROR',
+                        message: 'Received unexpected data format. Please try again.',
+                        originalError: 'Invalid dominant_acs_systems: must be an array',
+                        retryable: false
+                    };
                 }
                 
                 if (abortSignal.aborted) {
                     throw new Error('Request aborted');
                 }
 
-                // --- STEP 6: GENERATE NOTES/INTEL (Last Step) ---
-                sendEvent('status', { message: 'Generating intelligence notes...', step: 'notes', progress: 98 });
+                // --- STEP 6: GENERATE STRATEGIC NOTES ---
+                sendEvent('status', { message: 'Generating strategic notes...', step: 'notes', progress: 98 });
                 
-                // Truncate researchText for notes (keep first 6000 chars ~1500 tokens)
                 const notesResearchText = researchText.length > 6000 ? researchText.substring(0, 6000) + '\n\n[... truncated for token limits ...]' : researchText;
                 
                 const notesPrompt = `
-Based on the research findings below, generate strategic intelligence notes for this terminal.
+Based on the research findings below, generate strategic intelligence notes for this port.
 Include:
 - Strategic insights not captured in structured fields
-- Operational context
-- Recent developments or changes
+- Network effects and cluster dynamics
+- Governance and decision-making context
+- Expansion opportunities
 - Data quality observations
-- Any other relevant intelligence
+- Any other relevant GTM intelligence
 
 RESEARCH FINDINGS:
 ${notesResearchText}
 
-CURRENT NOTES:
-${terminal.notes || '(none)'}
+CURRENT STRATEGIC NOTES:
+${port.strategicNotes || '(none)'}
 
 Format: Append new findings to existing notes with a separator.
 Return JSON:
@@ -589,9 +601,9 @@ Return JSON:
 `;
 
                 let notesProposal = {
-                    currentNotes: terminal.notes || '',
+                    currentNotes: port.strategicNotes || '',
                     newFindings: '',
-                    combinedNotes: terminal.notes || ''
+                    combinedNotes: port.strategicNotes || ''
                 };
 
                 try {
@@ -603,18 +615,17 @@ Return JSON:
                     });
                     const notesData = JSON.parse(notesRes.choices[0].message.content || '{}');
                     notesProposal = {
-                        currentNotes: terminal.notes || '',
+                        currentNotes: port.strategicNotes || '',
                         newFindings: notesData.newFindings || '',
-                        combinedNotes: notesData.combinedNotes || terminal.notes || ''
+                        combinedNotes: notesData.combinedNotes || port.strategicNotes || ''
                     };
                 } catch (e) {
-                    // Fallback: simple append
                     const dateStr = new Date().toISOString().split('T')[0];
                     notesProposal = {
-                        currentNotes: terminal.notes || '',
+                        currentNotes: port.strategicNotes || '',
                         newFindings: `--- Deep Research ${dateStr} ---\nKey findings from research: ${researchSummary}`,
-                        combinedNotes: terminal.notes 
-                            ? `${terminal.notes}\n\n--- Deep Research ${dateStr} ---\n${researchSummary}`
+                        combinedNotes: port.strategicNotes 
+                            ? `${port.strategicNotes}\n\n--- Deep Research ${dateStr} ---\n${researchSummary}`
                             : `--- Deep Research ${dateStr} ---\n${researchSummary}`
                     };
                 }
@@ -622,91 +633,56 @@ Return JSON:
                 // --- STEP 7: BUILD UPDATE DATA FROM PROPOSALS ---
                 sendEvent('status', { message: 'Preparing changes for review...', step: 'prepare', progress: 99 });
 
-                interface TerminalUpdateData {
+                interface PortUpdateData {
                     lastDeepResearchAt: Date;
                     lastDeepResearchSummary: string;
-                    operatorGroup?: string;
-                    ownership?: string;
-                    ispsRiskLevel?: string;
-                    cargoTypes?: string;
-                    capacity?: string;
-                    latitude?: number;
-                    longitude?: number;
-                    portId?: string;
-                    notes?: string;
+                    portAuthority?: string;
+                    customsAuthority?: string;
+                    portWideIdentitySystem?: string;
+                    identityCompetitors?: string;
+                    identityAdoptionRate?: string;
+                    portLevelISPSRisk?: string;
+                    ispsEnforcementStrength?: string;
+                    dominantTOSSystems?: string;
+                    dominantACSSystems?: string;
+                    strategicNotes?: string;
                 }
 
-                const dataToUpdate: TerminalUpdateData = {
+                const dataToUpdate: PortUpdateData = {
                     lastDeepResearchAt: new Date(),
                     lastDeepResearchSummary: researchSummary,
                 };
 
-                // Process port change if needed
-                let portChangeSuggestion: { from: string; to: string; country: string } | null = null;
-                const portProposal = fieldProposals.find(p => p.field === 'portId');
-                if (portProposal && portProposal.shouldUpdate && typeof portProposal.proposedValue === 'string') {
-                    const allPorts = await prisma.port.findMany();
-                    let suggestedPort = allPorts.find(
-                        p => p.name.toLowerCase() === portProposal.proposedValue.toLowerCase()
-                    );
-
-                    if (!suggestedPort) {
-                        const matchingPorts = allPorts.filter(
-                            p => p.name.toLowerCase().includes(portProposal.proposedValue.toLowerCase()) &&
-                                 p.country === terminal.port.country
-                        );
-                        if (matchingPorts.length === 1) {
-                            suggestedPort = matchingPorts[0];
-                        }
-                    }
-
-                    if (suggestedPort && suggestedPort.id !== terminal.portId && suggestedPort.country === terminal.port.country) {
-                        dataToUpdate.portId = suggestedPort.id;
-                        portChangeSuggestion = {
-                            from: terminal.port.name,
-                            to: suggestedPort.name,
-                            country: suggestedPort.country
-                        };
-                    } else if (suggestedPort) {
-                        portChangeSuggestion = {
-                            from: terminal.port.name,
-                            to: suggestedPort.name,
-                            country: suggestedPort.country
-                        };
-                    }
-                }
-
-                // Build field proposals with proper formatting
-                // IMPORTANT: Include ALL proposals in dataToUpdate so user can approve/reject them
-                // The shouldUpdate and confidence checks are for UI display only - user makes final decision
                 const formattedFieldProposals = fieldProposals.map(proposal => {
                     let formattedProposal = { ...proposal };
                     
-                    // Format coordinates
-                    if (proposal.field === 'coordinates' && typeof proposal.proposedValue === 'object' && proposal.proposedValue !== null) {
-                        // Always include in dataToUpdate if there's a proposed value (user will decide)
-                        dataToUpdate.latitude = proposal.proposedValue.lat;
-                        dataToUpdate.longitude = proposal.proposedValue.lon;
+                    // Format array fields
+                    if (proposal.field === 'identityCompetitors' && Array.isArray(proposal.proposedValue)) {
+                        dataToUpdate.identityCompetitors = JSON.stringify(proposal.proposedValue);
                     }
-                    // Format cargo types
-                    else if (proposal.field === 'cargoTypes' && Array.isArray(proposal.proposedValue)) {
-                        // Always include in dataToUpdate if there's a proposed value
-                        dataToUpdate.cargoTypes = JSON.stringify(proposal.proposedValue);
+                    else if (proposal.field === 'dominantTOSSystems' && Array.isArray(proposal.proposedValue)) {
+                        dataToUpdate.dominantTOSSystems = JSON.stringify(proposal.proposedValue);
                     }
-                    // Format other fields - include ALL proposals in dataToUpdate for user approval
+                    else if (proposal.field === 'dominantACSSystems' && Array.isArray(proposal.proposedValue)) {
+                        dataToUpdate.dominantACSSystems = JSON.stringify(proposal.proposedValue);
+                    }
+                    // Format other fields
                     else if (proposal.proposedValue !== null && proposal.proposedValue !== undefined && proposal.proposedValue !== '') {
-                        if (proposal.field === 'operatorGroup') {
-                            dataToUpdate.operatorGroup = proposal.proposedValue;
-                        } else if (proposal.field === 'ownership') {
-                            dataToUpdate.ownership = proposal.proposedValue;
-                        } else if (proposal.field === 'capacity') {
-                            dataToUpdate.capacity = proposal.proposedValue;
-                        } else if (proposal.field === 'ispsRiskLevel') {
-                            dataToUpdate.ispsRiskLevel = proposal.proposedValue;
+                        if (proposal.field === 'portAuthority') {
+                            dataToUpdate.portAuthority = proposal.proposedValue;
+                        } else if (proposal.field === 'customsAuthority') {
+                            dataToUpdate.customsAuthority = proposal.proposedValue;
+                        } else if (proposal.field === 'portWideIdentitySystem') {
+                            dataToUpdate.portWideIdentitySystem = proposal.proposedValue;
+                        } else if (proposal.field === 'identityAdoptionRate') {
+                            dataToUpdate.identityAdoptionRate = proposal.proposedValue;
+                        } else if (proposal.field === 'portLevelISPSRisk') {
+                            dataToUpdate.portLevelISPSRisk = proposal.proposedValue;
+                        } else if (proposal.field === 'ispsEnforcementStrength') {
+                            dataToUpdate.ispsEnforcementStrength = proposal.proposedValue;
                         }
                     }
 
-                    // Add auto-approved flag
                     formattedProposal = {
                         ...formattedProposal,
                         autoApproved: proposal.confidence > 0.80
@@ -715,17 +691,17 @@ Return JSON:
                     return formattedProposal;
                 });
 
-                // Add notes proposal (always included, user can edit)
+                // Add strategic notes proposal
                 formattedFieldProposals.push({
-                    field: 'notes',
+                    field: 'strategicNotes',
                     currentValue: notesProposal.currentNotes,
                     proposedValue: notesProposal.combinedNotes,
-                    confidence: 0.7, // Medium confidence for notes
+                    confidence: 0.7,
                     shouldUpdate: true,
-                    reasoning: 'Intelligence notes generated from research findings',
+                    reasoning: 'Strategic intelligence notes generated from research findings',
                     sources: allSources,
                     updatePriority: 'low',
-                    autoApproved: false // Notes always require review
+                    autoApproved: false
                 });
 
                 // --- STEP 8: SEND PREVIEW EVENT ---
@@ -737,7 +713,6 @@ Return JSON:
                     research_queries: researchQueries,
                     full_report: researchText,
                     concise_summary: researchSummary,
-                    port_change_suggestion: portChangeSuggestion,
                     data_to_update: dataToUpdate
                 });
 
@@ -757,8 +732,8 @@ Return JSON:
                     }
                     
                     // Save to database - this is critical for persistence
-                    await prisma.terminal.update({
-                        where: { id: terminalId },
+                    await prisma.port.update({
+                        where: { id: portId },
                         data: { 
                             lastDeepResearchReport: reportToSave,
                             lastDeepResearchAt: new Date() // Also update timestamp
@@ -780,7 +755,6 @@ Return JSON:
 
                 controller.close();
             } catch (error: unknown) {
-                // Handle categorized errors
                 if (error && typeof error === 'object' && 'category' in error) {
                     const err = error as { category: string; message: string; originalError?: string; retryable: boolean };
                     sendEvent('error', {
@@ -790,7 +764,6 @@ Return JSON:
                         retryable: err.retryable
                     });
                 } else if (error instanceof Error) {
-                    // Check if it's an abort
                     if (error.message === 'Request aborted' || error.name === 'AbortError') {
                         sendEvent('error', {
                             category: 'NETWORK_ERROR',

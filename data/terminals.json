@@ -8,7 +8,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "High"
     },
     {
@@ -20,7 +20,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -32,7 +32,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "High"
     },
     {
@@ -44,7 +44,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "High"
     },
     {
@@ -57,7 +57,7 @@
             "Dry Bulk",
             "Break Bulk"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -70,7 +70,7 @@
             "RoRo",
             "Multipurpose"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -83,7 +83,7 @@
             "Break Bulk",
             "Multipurpose"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -95,7 +95,7 @@
         "cargoTypes": [
             "Multipurpose"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Low"
     },
     {
@@ -109,7 +109,7 @@
             "RoRo",
             "Dry Bulk"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -122,7 +122,7 @@
             "Liquid Bulk",
             "Dry Bulk"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "High"
     },
     {
@@ -135,7 +135,7 @@
             "Dry Bulk",
             "Break Bulk"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -148,7 +148,7 @@
             "Dry Bulk",
             "Multipurpose"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -160,7 +160,7 @@
         "cargoTypes": [
             "RoRo"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -173,7 +173,7 @@
             "Container",
             "RoRo"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "High"
     },
     {
@@ -185,7 +185,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -197,7 +197,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -209,7 +209,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -221,7 +221,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -233,7 +233,7 @@
         "cargoTypes": [
             "Multipurpose"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Low"
     },
     {
@@ -245,7 +245,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Low"
     },
     {
@@ -257,7 +257,7 @@
         "cargoTypes": [
             "Multipurpose"
         ],
-        "estAnnualVolume": "Low",
+        "capacity": "Low",
         "ispsRiskLevel": "Low"
     },
     {
@@ -270,7 +270,7 @@
             "RoRo",
             "Dry Bulk"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Low"
     },
     {
@@ -282,7 +282,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -294,7 +294,7 @@
         "cargoTypes": [
             "Dry Bulk"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Low"
     },
     {
@@ -306,7 +306,7 @@
         "cargoTypes": [
             "Multipurpose"
         ],
-        "estAnnualVolume": "Low",
+        "capacity": "Low",
         "ispsRiskLevel": "Low"
     },
     {
@@ -318,7 +318,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -330,7 +330,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -342,7 +342,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -354,7 +354,7 @@
         "cargoTypes": [
             "RoRo"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -366,7 +366,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "High"
     },
     {
@@ -378,7 +378,7 @@
         "cargoTypes": [
             "Multipurpose"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -391,7 +391,7 @@
             "Passenger/Ferry",
             "RoRo"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Low"
     },
     {
@@ -403,7 +403,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -416,7 +416,7 @@
             "Dry Bulk",
             "Liquid Bulk"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -428,7 +428,7 @@
         "cargoTypes": [
             "Multipurpose"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -441,7 +441,7 @@
             "Container",
             "Liquid Bulk"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
     },
     {
@@ -453,7 +453,7 @@
         "cargoTypes": [
             "Container"
         ],
-        "estAnnualVolume": "High",
+        "capacity": "High",
         "ispsRiskLevel": "High"
     },
     {
@@ -465,7 +465,219 @@
         "cargoTypes": [
             "Dry Bulk"
         ],
-        "estAnnualVolume": "Medium",
+        "capacity": "Medium",
         "ispsRiskLevel": "Medium"
+    },
+    {
+        "id": "uk-felixstowe-hutchison",
+        "name": "Port of Felixstowe Container Terminals",
+        "portId": "p-felixstowe",
+        "latitude": 51.9606,
+        "longitude": 1.3511,
+        "cargoTypes": [
+            "Container"
+        ],
+        "capacity": "Very High",
+        "ispsRiskLevel": "High",
+        "notes": "Largest UK container port; strong customs and Border Force presence. TOS: Navis N4, ACS: Local / Legacy ACS, Identity: Local Port Pass"
+    },
+    {
+        "id": "uk-london-gateway-dpworld",
+        "name": "London Gateway Container Terminal",
+        "portId": "p-london-gateway",
+        "latitude": 51.5079,
+        "longitude": 0.5086,
+        "cargoTypes": [
+            "Container"
+        ],
+        "capacity": "High",
+        "ispsRiskLevel": "High",
+        "notes": "Highly automated DP World terminal; strong landlord control. TOS: Navis N4, ACS: DP World Integrated ACS, Identity: Local"
+    },
+    {
+        "id": "uk-tilbury-forthports",
+        "name": "Port of Tilbury Terminals",
+        "portId": "p-tilbury",
+        "latitude": 51.4626,
+        "longitude": 0.3587,
+        "cargoTypes": [
+            "Container",
+            "RoRo",
+            "Multipurpose"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "Medium",
+        "notes": "Diversified port with mixed cargo and lower automation. TOS: Mixed / Legacy, ACS: Legacy ACS, Identity: Local"
+    },
+    {
+        "id": "uk-immingham-abp",
+        "name": "Port of Immingham",
+        "portId": "p-immingham",
+        "latitude": 53.6281,
+        "longitude": -0.1877,
+        "cargoTypes": [
+            "RoRo",
+            "Dry Bulk",
+            "Liquid Bulk"
+        ],
+        "capacity": "Very High",
+        "ispsRiskLevel": "High",
+        "notes": "UK's largest port by tonnage; critical energy and bulk hub. TOS: Navis / Custom, ACS: ABP Standard ACS, Identity: Local"
+    },
+    {
+        "id": "uk-hull-abp",
+        "name": "Port of Hull",
+        "portId": "p-hull",
+        "latitude": 53.7390,
+        "longitude": -0.2962,
+        "cargoTypes": [
+            "RoRo",
+            "Dry Bulk"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "Medium",
+        "notes": "Strong RoRo and offshore wind logistics footprint. TOS: Legacy / Mixed, ACS: ABP Standard ACS, Identity: Local"
+    },
+    {
+        "id": "uk-southampton-abp",
+        "name": "Port of Southampton",
+        "portId": "p-southampton",
+        "latitude": 50.9049,
+        "longitude": -1.4044,
+        "cargoTypes": [
+            "Container",
+            "RoRo",
+            "Passenger/Ferry"
+        ],
+        "capacity": "High",
+        "ispsRiskLevel": "High",
+        "notes": "Major automotive, container, and cruise hub. TOS: Navis N4, ACS: Legacy + Border Force Controls, Identity: Local"
+    },
+    {
+        "id": "uk-portsmouth-ropax",
+        "name": "Portsmouth International Port",
+        "portId": "p-portsmouth",
+        "latitude": 50.8167,
+        "longitude": -1.1030,
+        "cargoTypes": [
+            "RoRo",
+            "Passenger/Ferry"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "High",
+        "notes": "High passenger and ferry throughput; strong border control relevance. TOS: RoRo-specific, ACS: Legacy ACS, Identity: Local"
+    },
+    {
+        "id": "uk-liverpool-peel",
+        "name": "Port of Liverpool",
+        "portId": "p-liverpool",
+        "latitude": 53.4046,
+        "longitude": -3.0160,
+        "cargoTypes": [
+            "Container",
+            "RoRo"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "Medium",
+        "notes": "Key RoRo and Irish Sea trade corridor. TOS: Navis, ACS: Peel Ports ACS, Identity: Local"
+    },
+    {
+        "id": "se-gothenburg-apmt",
+        "name": "APMT Gothenburg",
+        "portId": "p-gothenburg",
+        "latitude": 57.7065,
+        "longitude": 11.9361,
+        "cargoTypes": [
+            "Container",
+            "RoRo"
+        ],
+        "capacity": "High",
+        "ispsRiskLevel": "Medium",
+        "notes": "Largest Nordic port; key Baltic–North Sea connector. TOS: Navis N4, ACS: Port of Gothenburg ACS, Identity: Local"
+    },
+    {
+        "id": "dk-aarhus-container",
+        "name": "Aarhus Container Terminal",
+        "portId": "p-aarhus",
+        "latitude": 56.1629,
+        "longitude": 10.2290,
+        "cargoTypes": [
+            "Container"
+        ],
+        "capacity": "High",
+        "ispsRiskLevel": "Medium",
+        "notes": "Denmark's main container hub. TOS: Navis N4, ACS: Port Standard ACS, Identity: Local"
+    },
+    {
+        "id": "dk-se-cmp",
+        "name": "Copenhagen Malmö Port",
+        "portId": "p-copenhagen-malmo",
+        "latitude": 55.6129,
+        "longitude": 12.9943,
+        "cargoTypes": [
+            "RoRo",
+            "Multipurpose",
+            "Passenger/Ferry"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "Medium",
+        "notes": "Strategic Öresund hub; strong public ownership. TOS: Mixed, ACS: CMP ACS, Identity: Local"
+    },
+    {
+        "id": "fi-helsinki-port",
+        "name": "Port of Helsinki Terminals",
+        "portId": "p-helsinki",
+        "latitude": 60.1719,
+        "longitude": 24.9414,
+        "cargoTypes": [
+            "Container",
+            "RoRo",
+            "Passenger/Ferry"
+        ],
+        "capacity": "High",
+        "ispsRiskLevel": "High",
+        "notes": "High ferry and RoRo identity volumes; strategic eastern border hub. TOS: Navis, ACS: Port of Helsinki ACS, Identity: Local"
+    },
+    {
+        "id": "fi-kotka-hamina",
+        "name": "Port of HaminaKotka",
+        "portId": "p-hamina-kotka",
+        "latitude": 60.4667,
+        "longitude": 26.9167,
+        "cargoTypes": [
+            "Container",
+            "Dry Bulk"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "Medium",
+        "notes": "Key container and forest products hub. TOS: Navis, ACS: Port Standard ACS, Identity: Local"
+    },
+    {
+        "id": "no-oslo-port",
+        "name": "Port of Oslo",
+        "portId": "p-oslo",
+        "latitude": 59.9073,
+        "longitude": 10.7461,
+        "cargoTypes": [
+            "Container",
+            "RoRo"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "Medium",
+        "notes": "Main Norwegian container gateway. TOS: Navis, ACS: Port of Oslo ACS, Identity: Local"
+    },
+    {
+        "id": "no-stavanger-energy",
+        "name": "Port of Stavanger",
+        "portId": "p-stavanger",
+        "latitude": 58.9690,
+        "longitude": 5.7331,
+        "cargoTypes": [
+            "Liquid Bulk",
+            "Multipurpose"
+        ],
+        "capacity": "Medium",
+        "ispsRiskLevel": "High",
+        "notes": "Offshore oil & gas logistics hub; high contractor density. TOS: Custom, ACS: Port Standard ACS, Identity: Local"
     }
 ]

@@ -40,8 +40,6 @@ async function main() {
                 name: port.name,
                 country: port.country,
                 clusterId: port.clusterId,
-                latitude: port.latitude,
-                longitude: port.longitude,
                 description: port.description,
             },
         });
@@ -60,7 +58,7 @@ async function main() {
                 latitude: terminal.latitude,
                 longitude: terminal.longitude,
                 cargoTypes: JSON.stringify(terminal.cargoTypes),
-                estAnnualVolume: terminal.estAnnualVolume,
+                capacity: terminal.capacity,
                 ispsRiskLevel: terminal.ispsRiskLevel,
             },
         });

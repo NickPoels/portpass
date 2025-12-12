@@ -1,13 +1,8 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Cluster, Port, Terminal } from "@/lib/types";
-
-// Prevent multiple instances of Prisma Client in development
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 // --- CLUSTERS ---
 
@@ -20,7 +15,11 @@ export async function createCluster(data: Cluster) {
             name: data.name,
             countries: countriesStr,
             priorityTier: data.priorityTier,
-            description: data.description
+            description: data.description,
+            strategicNotes: data.strategicNotes,
+            clusterWideIdentitySystem: data.clusterWideIdentitySystem,
+            governanceCoordination: data.governanceCoordination,
+            networkEffectIndicators: data.networkEffectIndicators
         }
     });
     revalidatePath("/");
@@ -35,7 +34,11 @@ export async function updateCluster(data: Cluster) {
             name: data.name,
             countries: countriesStr,
             priorityTier: data.priorityTier,
-            description: data.description
+            description: data.description,
+            strategicNotes: data.strategicNotes,
+            clusterWideIdentitySystem: data.clusterWideIdentitySystem,
+            governanceCoordination: data.governanceCoordination,
+            networkEffectIndicators: data.networkEffectIndicators
         }
     });
     revalidatePath("/");
@@ -55,9 +58,22 @@ export async function createPort(data: Port) {
             name: data.name,
             country: data.country,
             clusterId: data.clusterId,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            description: data.description
+            description: data.description,
+            // Governance
+            portAuthority: data.portAuthority,
+            customsAuthority: data.customsAuthority,
+            // Identity
+            portWideIdentitySystem: data.portWideIdentitySystem,
+            identityCompetitors: data.identityCompetitors ? JSON.stringify(data.identityCompetitors) : null,
+            identityAdoptionRate: data.identityAdoptionRate,
+            // ISPS
+            portLevelISPSRisk: data.portLevelISPSRisk,
+            ispsEnforcementStrength: data.ispsEnforcementStrength,
+            // Systems
+            dominantTOSSystems: data.dominantTOSSystems ? JSON.stringify(data.dominantTOSSystems) : null,
+            dominantACSSystems: data.dominantACSSystems ? JSON.stringify(data.dominantACSSystems) : null,
+            // Strategic
+            strategicNotes: data.strategicNotes,
         }
     });
     revalidatePath("/");
@@ -70,9 +86,26 @@ export async function updatePort(data: Port) {
             name: data.name,
             country: data.country,
             clusterId: data.clusterId,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            description: data.description
+            description: data.description,
+            // Governance
+            portAuthority: data.portAuthority,
+            customsAuthority: data.customsAuthority,
+            // Identity
+            portWideIdentitySystem: data.portWideIdentitySystem,
+            identityCompetitors: data.identityCompetitors ? JSON.stringify(data.identityCompetitors) : null,
+            identityAdoptionRate: data.identityAdoptionRate,
+            // ISPS
+            portLevelISPSRisk: data.portLevelISPSRisk,
+            ispsEnforcementStrength: data.ispsEnforcementStrength,
+            // Systems
+            dominantTOSSystems: data.dominantTOSSystems ? JSON.stringify(data.dominantTOSSystems) : null,
+            dominantACSSystems: data.dominantACSSystems ? JSON.stringify(data.dominantACSSystems) : null,
+            // Strategic
+            strategicNotes: data.strategicNotes,
+            // Research tracking
+            lastDeepResearchAt: data.lastDeepResearchAt ? new Date(data.lastDeepResearchAt) : null,
+            lastDeepResearchSummary: data.lastDeepResearchSummary,
+            lastDeepResearchReport: data.lastDeepResearchReport,
         }
     });
     revalidatePath("/");
@@ -87,8 +120,6 @@ export async function deletePort(id: string) {
 
 export async function createTerminal(data: Terminal) {
     const cargoTypesStr = JSON.stringify(data.cargoTypes);
-    const leadershipStr = data.leadership ? JSON.stringify(data.leadership) : null;
-    const cargoSpecsStr = data.cargoSpecializations ? JSON.stringify(data.cargoSpecializations) : null;
 
     await prisma.terminal.create({
         data: {
@@ -98,18 +129,12 @@ export async function createTerminal(data: Terminal) {
             latitude: data.latitude,
             longitude: data.longitude,
             cargoTypes: cargoTypesStr,
-            estAnnualVolume: data.estAnnualVolume,
+            capacity: data.capacity,
             ispsRiskLevel: data.ispsRiskLevel,
             notes: data.notes,
             // Deep Research
-            officialName: data.officialName,
             operatorGroup: data.operatorGroup,
             ownership: data.ownership,
-            leadership: leadershipStr,
-            cargoSpecializations: cargoSpecsStr,
-            infrastructure: data.infrastructure,
-            volumes: data.volumes,
-            digitalizationSecurity: data.digitalizationSecurity,
             lastDeepResearchAt: data.lastDeepResearchAt ? new Date(data.lastDeepResearchAt) : null,
             lastDeepResearchSummary: data.lastDeepResearchSummary
         }
@@ -119,8 +144,6 @@ export async function createTerminal(data: Terminal) {
 
 export async function updateTerminal(data: Terminal) {
     const cargoTypesStr = JSON.stringify(data.cargoTypes);
-    const leadershipStr = data.leadership ? JSON.stringify(data.leadership) : null;
-    const cargoSpecsStr = data.cargoSpecializations ? JSON.stringify(data.cargoSpecializations) : null;
 
     await prisma.terminal.update({
         where: { id: data.id },
@@ -130,18 +153,12 @@ export async function updateTerminal(data: Terminal) {
             latitude: data.latitude,
             longitude: data.longitude,
             cargoTypes: cargoTypesStr,
-            estAnnualVolume: data.estAnnualVolume,
+            capacity: data.capacity,
             ispsRiskLevel: data.ispsRiskLevel,
             notes: data.notes,
             // Deep Research
-            officialName: data.officialName,
             operatorGroup: data.operatorGroup,
             ownership: data.ownership,
-            leadership: leadershipStr,
-            cargoSpecializations: cargoSpecsStr,
-            infrastructure: data.infrastructure,
-            volumes: data.volumes,
-            digitalizationSecurity: data.digitalizationSecurity,
             lastDeepResearchAt: data.lastDeepResearchAt ? new Date(data.lastDeepResearchAt) : null,
             lastDeepResearchSummary: data.lastDeepResearchSummary
         }

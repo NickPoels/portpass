@@ -1,0 +1,68 @@
+{
+    "project": "Port Pass GTM Intelligence Tool",
+    "description": "Internal application for researching, storing, visualizing, and analyzing European ports, terminals, clusters, systems, governance, and ISPS-related risk to guide Port Pass go-to-market strategy.",
+  
+    "context": {
+      "port_pass_overview": "Port Pass is a European digital identity and access layer for ISPS-regulated terminals and ports. It enables one verified identity (drivers, contractors, crew, dock workers) to be used across multiple terminals, reducing security risk, compliance overhead, and friction. Port Pass succeeds when clusters of terminals adopt the same identity standard, reinforced by authorities, customs, and security pressure.",
+  
+      "internal_app_purpose": "This application is not Port Pass itself—it is an internal tool to support GTM research and decision-making. Its purpose is to model the European port ecosystem, identify high-value clusters, map competitors, understand local governance, evaluate system landscapes (TOS/ACS), assess ISPS risk, and prioritize targets for Port Pass expansion.",
+  
+      "what_the_app_should_enable": [
+        "Store structured data on ports, terminals, clusters, cargo types, governance models, risk level, and existing identity systems.",
+        "Visualize terminals and clusters on a map.",
+        "Allow human-in-the-loop research: adding/editing terminals, enriching metadata, recording insights.",
+        "Support reasoning about Port Pass expansion, network effects, strategic priorities, and competitor footprint.",
+        "Provide extensible hooks for future research agents to suggest new terminals or metadata (user approves)."
+      ],
+  
+      "key_entities": {
+        "port": "High-level entity (e.g. Antwerp, Rotterdam, Algeciras). Contains multiple terminals.",
+        "terminal": "Operational facility with specific cargo types, systems, governance, and ISPS profile.",
+        "cluster": "Grouped ports/terminals with shared workforce, governance, or security dynamics (e.g. Antwerp–Rotterdam–NSP).",
+        "governance": "Authorities, customs, police, unions, national maritime bodies.",
+        "systems": "TOS, ACS, identity providers (AlfaPass, CargoCard), local badges.",
+        "risk": "Security pressure, drug crime, smuggling routes, ISPS enforcement strength.",
+        "competitors": "Local or regional identity systems that influence adoption dynamics."
+      },
+  
+      "what_good_looks_like": [
+        "Every feature should help Port Pass identify where to expand, where network effects exist, and where mandate pressure is likely.",
+        "Qualitative or estimated data is acceptable—clarity is more important than precision.",
+        "Data should be easy to extend, annotate, and refine manually.",
+        "UI should support rapid comparison of terminals, clusters, countries, governance structures, and risks."
+      ],
+  
+      "non_goals": [
+        "Do not implement Port Pass customer-facing functionality.",
+        "Do not build TOS/ACS systems or simulate terminal operations.",
+        "No full autonomous scraping—research suggestions must be user-approved.",
+        "No authentication, billing, or production infrastructure."
+      ]
+    },
+  
+    "data_model": {
+      "terminal_fields": [
+        "id", "name", "portName", "country", "clusterId",
+        "latitude", "longitude",
+        "cargoTypes[]", "tosSystem", "acsSystem", "identitySystem",
+        "governanceNotes", "ispsRisk",
+        "estimatedCapacity", "notes"
+      ],
+      "port_fields": ["id", "name", "country", "governance", "clusterId", "notes"],
+      "cluster_fields": ["id", "name", "countries[]", "priorityTier", "description"]
+    },
+  
+    "agent_guidance": {
+      "prioritize_features_that": [
+        "Improve reasoning about Port Pass expansion targets.",
+        "Reveal cluster dynamics and network-effect potential.",
+        "Surface governance, authority structures, and ISPS relevance.",
+        "Compare or map identity competitors (CargoCard, AlfaPass, etc.)."
+      ],
+      "avoid_features_that": [
+        "Do not build operational logistics features unrelated to identity.",
+        "Do not propose end-user flows for actual Port Pass customers.",
+        "Do not focus on non-ISPS sites unless strategically relevant."
+      ]
+    }
+  }

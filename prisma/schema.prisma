@@ -17,6 +17,12 @@ model Cluster {
   priorityTier Int
   description  String
   ports        Port[]
+
+  // Strategic & Metadata Fields
+  strategicNotes            String?
+  clusterWideIdentitySystem String?
+  governanceCoordination   String?
+  networkEffectIndicators   String?
 }
 
 model Port {
@@ -24,36 +30,53 @@ model Port {
   name        String
   country     String
   clusterId   String
-  cluster     Cluster    @relation(fields: [clusterId], references: [id])
-  latitude    Float
-  longitude   Float
+  cluster     Cluster    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
   description String?
   terminals   Terminal[]
+
+  // Governance Fields
+  portAuthority    String?
+  customsAuthority String?
+
+  // Identity System Fields
+  portWideIdentitySystem String?  // e.g., "AlfaPass", "CargoCard", "Local Badge System"
+  identityCompetitors     String?  // Stored as JSON string array
+  identityAdoptionRate    String? // e.g., "High", "Medium", "Low", "None", or percentage "60%"
+
+  // ISPS Risk Fields
+  portLevelISPSRisk      String?  // "Low", "Medium", "High", "Very High"
+  ispsEnforcementStrength String?  // "Weak", "Moderate", "Strong", "Very Strong"
+
+  // System Landscape Fields
+  dominantTOSSystems String?  // Stored as JSON string array
+  dominantACSSystems String?  // Stored as JSON string array
+
+  // Strategic Notes
+  strategicNotes String?
+
+  // Deep Research Fields
+  lastDeepResearchAt      DateTime?
+  lastDeepResearchSummary String?
+  lastDeepResearchReport  String?
 }
 
 model Terminal {
   id                      String    @id
   name                    String
   portId                  String
-  port                    Port      @relation(fields: [portId], references: [id])
+  port                    Port      @relation(fields: [portId], references: [id], onDelete: Cascade)
   latitude                Float
   longitude               Float
   cargoTypes              String // Stored as JSON string
-  estAnnualVolume         String?
+  capacity                String?
   ispsRiskLevel           String?
-  ispsComplianceReason    String?
   notes                   String?
 
   // Deep Research Fields
-  officialName            String?
   operatorGroup           String?
   ownership               String?
-  leadership              String? // Stored as JSON string
-  cargoSpecializations    String? // Stored as JSON string
-  infrastructure          String?
-  volumes                 String?
-  digitalizationSecurity  String?
   
   lastDeepResearchAt      DateTime?
   lastDeepResearchSummary String?
+  lastDeepResearchReport  String?
 }

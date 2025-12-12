@@ -15,11 +15,20 @@ export type ClusterId =
     | "HAROPA"
     | "GERMANY_NORTH"
     | "GREECE"
-    | "EASTERN_SECURITY";
+    | "EASTERN_SECURITY"
+    | "UK_EAST_CONTAINER"
+    | "UK_HUMBER_ENERGY"
+    | "UK_SOLENT_ROPAX"
+    | "UK_IRISH_SEA"
+    | "NORDIC_SCANDI_TURNTABLE"
+    | "NORDIC_GULF_FINLAND"
+    | "NORDIC_NORWAY_ENERGY";
 
 export type PriorityTier = 1 | 2 | 3;
 
 export type ISPSRiskLevel = "Low" | "Medium" | "High" | "Very High";
+
+export type ISPSEnforcementStrength = "Weak" | "Moderate" | "Strong" | "Very Strong";
 
 export interface Cluster {
     id: ClusterId;
@@ -27,6 +36,12 @@ export interface Cluster {
     description: string;
     priorityTier: PriorityTier;
     countries: string[];
+
+    // Strategic & Metadata Fields
+    strategicNotes?: string | null;
+    clusterWideIdentitySystem?: string | null;
+    governanceCoordination?: string | null;
+    networkEffectIndicators?: string | null;
 }
 
 export interface Port {
@@ -34,9 +49,32 @@ export interface Port {
     name: string;
     country: string;
     clusterId: ClusterId;
-    latitude: number;
-    longitude: number;
     description?: string;
+
+    // Governance Fields
+    portAuthority?: string | null;
+    customsAuthority?: string | null;
+
+    // Identity System Fields
+    portWideIdentitySystem?: string | null;
+    identityCompetitors?: string[]; // Array of competitor names
+    identityAdoptionRate?: string | null; // "High", "Medium", "Low", "None", or percentage
+
+    // ISPS Risk Fields
+    portLevelISPSRisk?: ISPSRiskLevel | null;
+    ispsEnforcementStrength?: ISPSEnforcementStrength | null;
+
+    // System Landscape Fields
+    dominantTOSSystems?: string[]; // Array of TOS system names
+    dominantACSSystems?: string[]; // Array of ACS system names
+
+    // Strategic Notes
+    strategicNotes?: string | null;
+
+    // Deep Research Fields
+    lastDeepResearchAt?: string | null; // ISO string format
+    lastDeepResearchSummary?: string | null;
+    lastDeepResearchReport?: string | null;
 }
 
 export interface Terminal {
@@ -47,20 +85,14 @@ export interface Terminal {
     latitude: number;
     longitude: number;
     cargoTypes: string[];
-    estAnnualVolume: string;
+    capacity: string;
     ispsRiskLevel: ISPSRiskLevel;
-    ispsComplianceReason?: string;
     notes?: string;
 
     // Deep Research Fields
-    officialName?: string | null;
     operatorGroup?: string | null;
     ownership?: string | null;
-    leadership?: string | null; // Stored as JSON string
-    cargoSpecializations?: string | null; // Stored as JSON string
-    infrastructure?: string | null;
-    volumes?: string | null;
-    digitalizationSecurity?: string | null;
-    lastDeepResearchAt?: Date | string | null;
+    lastDeepResearchAt?: string | null; // ISO string format
     lastDeepResearchSummary?: string | null;
+    lastDeepResearchReport?: string | null;
 }

@@ -76,5 +76,69 @@
         ],
         "priorityTier": 3,
         "description": "Gdansk/Gdynia, Klaipeda, Riga, Tallinn, Constanta, Varna/Burgas; EU funding leverage and ISPS gaps."
+    },
+    {
+        "id": "UK_EAST_CONTAINER",
+        "name": "UK East Coast Container Spine",
+        "countries": [
+            "United Kingdom"
+        ],
+        "priorityTier": 2,
+        "description": "Felixstowe, London Gateway, Tilbury; major UK container gateway with strong customs and Border Force presence."
+    },
+    {
+        "id": "UK_HUMBER_ENERGY",
+        "name": "Humber Energy & Bulk Cluster",
+        "countries": [
+            "United Kingdom"
+        ],
+        "priorityTier": 2,
+        "description": "Immingham, Hull; UK's largest port by tonnage; critical energy and bulk hub."
+    },
+    {
+        "id": "UK_SOLENT_ROPAX",
+        "name": "Solent & Channel Gateway",
+        "countries": [
+            "United Kingdom"
+        ],
+        "priorityTier": 2,
+        "description": "Southampton, Portsmouth; major automotive, container, cruise, and ferry hub with strong border control relevance."
+    },
+    {
+        "id": "UK_IRISH_SEA",
+        "name": "UK Irish Sea Cluster",
+        "countries": [
+            "United Kingdom"
+        ],
+        "priorityTier": 3,
+        "description": "Liverpool; key RoRo and Irish Sea trade corridor."
+    },
+    {
+        "id": "NORDIC_SCANDI_TURNTABLE",
+        "name": "Nordic Scandi Turntable (Gothenburg–Aarhus–Öresund)",
+        "countries": [
+            "Sweden",
+            "Denmark"
+        ],
+        "priorityTier": 2,
+        "description": "Gothenburg, Aarhus, Copenhagen/Malmö; largest Nordic ports; key Baltic–North Sea connector."
+    },
+    {
+        "id": "NORDIC_GULF_FINLAND",
+        "name": "Nordic Gulf of Finland Cluster",
+        "countries": [
+            "Finland"
+        ],
+        "priorityTier": 2,
+        "description": "Helsinki, Hamina-Kotka; high ferry and RoRo identity volumes; strategic eastern border hub."
+    },
+    {
+        "id": "NORDIC_NORWAY_ENERGY",
+        "name": "Nordic Norway Energy Cluster",
+        "countries": [
+            "Norway"
+        ],
+        "priorityTier": 3,
+        "description": "Oslo, Stavanger; main Norwegian container gateway and offshore oil & gas logistics hub."
     }
 ]

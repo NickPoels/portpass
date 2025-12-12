@@ -268,5 +268,140 @@
         "latitude": 43.195,
         "longitude": 27.920,
         "description": "Varna West and East terminals."
+    },
+    {
+        "id": "p-felixstowe",
+        "name": "Felixstowe",
+        "country": "United Kingdom",
+        "clusterId": "UK_EAST_CONTAINER",
+        "latitude": 51.9606,
+        "longitude": 1.3511,
+        "description": "Largest UK container port; strong customs and Border Force presence."
+    },
+    {
+        "id": "p-london-gateway",
+        "name": "London Gateway",
+        "country": "United Kingdom",
+        "clusterId": "UK_EAST_CONTAINER",
+        "latitude": 51.5079,
+        "longitude": 0.5086,
+        "description": "Highly automated DP World terminal; strong landlord control."
+    },
+    {
+        "id": "p-tilbury",
+        "name": "Tilbury",
+        "country": "United Kingdom",
+        "clusterId": "UK_EAST_CONTAINER",
+        "latitude": 51.4626,
+        "longitude": 0.3587,
+        "description": "Diversified port with mixed cargo and lower automation."
+    },
+    {
+        "id": "p-immingham",
+        "name": "Immingham",
+        "country": "United Kingdom",
+        "clusterId": "UK_HUMBER_ENERGY",
+        "latitude": 53.6281,
+        "longitude": -0.1877,
+        "description": "UK's largest port by tonnage; critical energy and bulk hub."
+    },
+    {
+        "id": "p-hull",
+        "name": "Hull",
+        "country": "United Kingdom",
+        "clusterId": "UK_HUMBER_ENERGY",
+        "latitude": 53.7390,
+        "longitude": -0.2962,
+        "description": "Strong RoRo and offshore wind logistics footprint."
+    },
+    {
+        "id": "p-southampton",
+        "name": "Southampton",
+        "country": "United Kingdom",
+        "clusterId": "UK_SOLENT_ROPAX",
+        "latitude": 50.9049,
+        "longitude": -1.4044,
+        "description": "Major automotive, container, and cruise hub."
+    },
+    {
+        "id": "p-portsmouth",
+        "name": "Portsmouth",
+        "country": "United Kingdom",
+        "clusterId": "UK_SOLENT_ROPAX",
+        "latitude": 50.8167,
+        "longitude": -1.1030,
+        "description": "High passenger and ferry throughput; strong border control relevance."
+    },
+    {
+        "id": "p-liverpool",
+        "name": "Liverpool",
+        "country": "United Kingdom",
+        "clusterId": "UK_IRISH_SEA",
+        "latitude": 53.4046,
+        "longitude": -3.0160,
+        "description": "Key RoRo and Irish Sea trade corridor."
+    },
+    {
+        "id": "p-gothenburg",
+        "name": "Gothenburg",
+        "country": "Sweden",
+        "clusterId": "NORDIC_SCANDI_TURNTABLE",
+        "latitude": 57.7065,
+        "longitude": 11.9361,
+        "description": "Largest Nordic port; key Baltic–North Sea connector."
+    },
+    {
+        "id": "p-aarhus",
+        "name": "Aarhus",
+        "country": "Denmark",
+        "clusterId": "NORDIC_SCANDI_TURNTABLE",
+        "latitude": 56.1629,
+        "longitude": 10.2290,
+        "description": "Denmark's main container hub."
+    },
+    {
+        "id": "p-copenhagen-malmo",
+        "name": "Copenhagen/Malmö",
+        "country": "Denmark/Sweden",
+        "clusterId": "NORDIC_SCANDI_TURNTABLE",
+        "latitude": 55.6129,
+        "longitude": 12.9943,
+        "description": "Strategic Öresund hub; strong public ownership."
+    },
+    {
+        "id": "p-helsinki",
+        "name": "Helsinki",
+        "country": "Finland",
+        "clusterId": "NORDIC_GULF_FINLAND",
+        "latitude": 60.1719,
+        "longitude": 24.9414,
+        "description": "High ferry and RoRo identity volumes; strategic eastern border hub."
+    },
+    {
+        "id": "p-hamina-kotka",
+        "name": "Hamina-Kotka",
+        "country": "Finland",
+        "clusterId": "NORDIC_GULF_FINLAND",
+        "latitude": 60.4667,
+        "longitude": 26.9167,
+        "description": "Key container and forest products hub."
+    },
+    {
+        "id": "p-oslo",
+        "name": "Oslo",
+        "country": "Norway",
+        "clusterId": "NORDIC_NORWAY_ENERGY",
+        "latitude": 59.9073,
+        "longitude": 10.7461,
+        "description": "Main Norwegian container gateway."
+    },
+    {
+        "id": "p-stavanger",
+        "name": "Stavanger",
+        "country": "Norway",
+        "clusterId": "NORDIC_NORWAY_ENERGY",
+        "latitude": 58.9690,
+        "longitude": 5.7331,
+        "description": "Offshore oil & gas logistics hub; high contractor density."
     }
 ]
