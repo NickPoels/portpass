@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Terminal, Port, Cluster, TerminalProposal } from "@/lib/types";
+import { TerminalOperator, Port, Cluster, TerminalOperatorProposal } from "@/lib/types";
 
 const Map = dynamic(() => import("./Map"), {
     ssr: false,
@@ -13,22 +13,22 @@ const Map = dynamic(() => import("./Map"), {
 });
 
 interface MapViewProps {
-    terminals: Terminal[];
+    operators: TerminalOperator[];
     ports: Port[];
     clusters: Cluster[];
-    proposals?: TerminalProposal[];
+    proposals?: TerminalOperatorProposal[];
     selectedClusterId?: string;
     zoomToClusterId?: string;
     zoomToPortId?: string;
-    zoomToTerminalId?: string;
-    onSelectTerminal?: (id: string) => void;
+    zoomToOperatorId?: string;
+    onSelectOperator?: (id: string) => void;
     onSelectProposal?: (id: string) => void;
     onClearSelection?: () => void;
     hasActiveFilter?: boolean;
 }
 
 export default function MapView(props: MapViewProps) {
-    // onSelectTerminal is optional here to prevent crash if not passed, but Map expects it. 
+    // onSelectOperator is optional here to prevent crash if not passed, but Map expects it. 
     // We can default it to no-op if undefined.
-    return <Map {...props} onSelectTerminal={props.onSelectTerminal || (() => { })} />;
+    return <Map {...props} onSelectOperator={props.onSelectOperator || (() => { })} />;
 }

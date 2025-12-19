@@ -2,7 +2,7 @@
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Terminal, Port, Cluster, PriorityTier, TerminalProposal } from "@/lib/types";
+import { TerminalOperator, Port, Cluster, PriorityTier, TerminalOperatorProposal } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 // Fix for default marker icons in Next.js
@@ -10,14 +10,14 @@ import { useEffect, useState } from "react";
 // Constants removed as they were unused and causing lint errors
 
 
-// Custom crane icon for Terminals
-const terminalIcon = L.icon({
+// Custom crane icon for Operators
+const operatorIcon = L.icon({
     iconUrl: "/terminal-icon.svg",
     iconSize: [26, 32], // approx 4:5 ratio matching SVG (40x50)
     iconAnchor: [13, 32],
     popupAnchor: [0, -32],
     tooltipAnchor: [13, -28],
-    className: "terminal-icon" // Optional class for additional styling
+    className: "operator-icon" // Optional class for additional styling
 });
 
 // Proposal icon with distinct styling (dashed border, orange/blue)
@@ -67,9 +67,9 @@ const createPortCountIcon = (count: number) => {
     });
 };
 
-// Dynamic Cluster Icon (Orange Circle with Count, color-coded by priority tier, size by terminal count)
+// Dynamic Cluster Icon (Orange Circle with Count, color-coded by priority tier, size by operator count)
 const createClusterIcon = (count: number, priorityTier: PriorityTier, minCount: number, maxCount: number) => {
-    // Calculate dynamic size based on terminal count (32px to 60px range)
+    // Calculate dynamic size based on operator count (32px to 60px range)
     const minSize = 32;
     const maxSize = 60;
     let size = minSize;
@@ -143,22 +143,22 @@ const isValidCoordinates = (lat: number, lng: number, portCountry?: string): boo
     return true;
 };
 
-// Helper function to filter terminals with valid coordinates
-const filterValidTerminals = (terminals: Terminal[]): Terminal[] => {
-    return terminals.filter(t => isValidCoordinates(t.latitude, t.longitude));
+// Helper function to filter operators with valid coordinates
+const filterValidOperators = (operators: TerminalOperator[]): TerminalOperator[] => {
+    return operators.filter(o => o.latitude !== null && o.longitude !== null && isValidCoordinates(o.latitude!, o.longitude!));
 };
 
 // Update Props Interface
 interface MapProps {
-    terminals: Terminal[];
+    operators: TerminalOperator[];
     ports: Port[];
     clusters: Cluster[];
-    proposals?: TerminalProposal[];
+    proposals?: TerminalOperatorProposal[];
     selectedClusterId?: string;
     zoomToClusterId?: string;
     zoomToPortId?: string;
-    zoomToTerminalId?: string;
-    onSelectTerminal: (id: string) => void;
+    zoomToOperatorId?: string;
+    onSelectOperator: (id: string) => void;
     onSelectProposal?: (id: string) => void;
     onClearSelection?: () => void;
     hasActiveFilter?: boolean;
@@ -168,19 +168,19 @@ const MapController = ({
     selectedClusterId,
     zoomToClusterId,
     zoomToPortId,
-    zoomToTerminalId,
+    zoomToOperatorId,
     ports,
-    terminals,
+    operators,
     proposals,
     hasActiveFilter
 }: {
     selectedClusterId?: string;
     zoomToClusterId?: string;
     zoomToPortId?: string;
-    zoomToTerminalId?: string;
+    zoomToOperatorId?: string;
     ports: Port[];
-    terminals: Terminal[];
-    proposals?: TerminalProposal[];
+    operators: TerminalOperator[];
+    proposals?: TerminalOperatorProposal[];
     hasActiveFilter?: boolean;
 }) => {
     const map = useMap();
@@ -188,26 +188,26 @@ const MapController = ({
     useEffect(() => {
         // Priority: zoomTo props > hasActiveFilter > selectedClusterId
         
-        // Handle zoom to terminal (highest priority)
-        if (zoomToTerminalId) {
-            const terminal = terminals.find(t => t.id === zoomToTerminalId);
-            if (terminal && isValidCoordinates(terminal.latitude, terminal.longitude)) {
-                // Calculate adaptive zoom based on nearby terminal density
-                const validTerminals = filterValidTerminals(terminals);
-                const portTerminals = validTerminals.filter(t => t.portId === terminal.portId);
+        // Handle zoom to operator (highest priority)
+        if (zoomToOperatorId) {
+            const operator = operators.find(o => o.id === zoomToOperatorId);
+            if (operator && isValidCoordinates(operator.latitude, operator.longitude)) {
+                // Calculate adaptive zoom based on nearby operator density
+                const validOperators = filterValidOperators(operators);
+                const portOperators = validOperators.filter(o => o.portId === operator.portId);
                 
-                // If terminal is in a dense port (many terminals), use zoom 12
+                // If operator is in a dense port (many operators), use zoom 12
                 // If isolated, use zoom 14 for closer view
-                const zoomLevel = portTerminals.length > 5 ? 12 : 14;
+                const zoomLevel = portOperators.length > 5 ? 12 : 14;
                 
-                map.setView([terminal.latitude, terminal.longitude], zoomLevel, { animate: true });
+                map.setView([operator.latitude, operator.longitude], zoomLevel, { animate: true });
                 return;
             }
         }
 
         // Handle zoom to port
         if (zoomToPortId) {
-            const portTerminals = filterValidTerminals(terminals.filter(t => t.portId === zoomToPortId));
+            const portOperators = filterValidOperators(operators.filter(o => o.portId === zoomToPortId));
             
             // Filter valid proposals for this port
             const portProposals = proposals 
@@ -219,9 +219,9 @@ const MapController = ({
                 )
                 : [];
             
-            // Combine terminals and proposals for bounds calculation
+            // Combine operators and proposals for bounds calculation
             const allLocations: Array<{ latitude: number; longitude: number }> = [
-                ...portTerminals.map(t => ({ latitude: t.latitude, longitude: t.longitude })),
+                ...portOperators.map(o => ({ latitude: o.latitude!, longitude: o.longitude! })),
                 ...portProposals.map(p => ({ latitude: p.latitude!, longitude: p.longitude! }))
             ];
             
@@ -235,19 +235,19 @@ const MapController = ({
         // Handle zoom to cluster
         if (zoomToClusterId) {
             const clusterPorts = ports.filter(p => p.clusterId === zoomToClusterId);
-            const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
-            if (clusterTerminals.length > 0) {
-                const bounds = L.latLngBounds(clusterTerminals.map(t => [t.latitude, t.longitude]));
+            const clusterOperators = filterValidOperators(operators.filter(o => clusterPorts.some(p => p.id === o.portId)));
+            if (clusterOperators.length > 0) {
+                const bounds = L.latLngBounds(clusterOperators.map(o => [o.latitude!, o.longitude!]));
                 map.fitBounds(bounds, { padding: [50, 50] });
                 return;
             }
         }
 
         // Auto-fit bounds logic for active filters
-        if (hasActiveFilter && terminals.length > 0) {
-            const validTerminals = filterValidTerminals(terminals);
-            if (validTerminals.length > 0) {
-                const bounds = L.latLngBounds(validTerminals.map(t => [t.latitude, t.longitude]));
+        if (hasActiveFilter && operators.length > 0) {
+            const validOperators = filterValidOperators(operators);
+            if (validOperators.length > 0) {
+                const bounds = L.latLngBounds(validOperators.map(o => [o.latitude!, o.longitude!]));
                 map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
                 return;
             }
@@ -255,15 +255,15 @@ const MapController = ({
 
         // Handle selectedClusterId (for filter panel)
         if (selectedClusterId) {
-            // Find terminals in this cluster
+            // Find operators in this cluster
             const clusterPorts = ports.filter(p => p.clusterId === selectedClusterId);
-            const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
-            if (clusterTerminals.length > 0) {
-                const bounds = L.latLngBounds(clusterTerminals.map(t => [t.latitude, t.longitude]));
+            const clusterOperators = filterValidOperators(operators.filter(o => clusterPorts.some(p => p.id === o.portId)));
+            if (clusterOperators.length > 0) {
+                const bounds = L.latLngBounds(clusterOperators.map(o => [o.latitude!, o.longitude!]));
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
         }
-    }, [selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, ports, map, terminals, proposals, hasActiveFilter]);
+    }, [selectedClusterId, zoomToClusterId, zoomToPortId, zoomToOperatorId, ports, map, operators, proposals, hasActiveFilter]);
 
     return null;
 };
@@ -278,19 +278,19 @@ const ZoomTracker = ({ onZoomChange }: { onZoomChange: (zoom: number) => void })
     return null;
 };
 
-const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, onSelectTerminal, onSelectProposal, onClearSelection, hasActiveFilter }: MapProps) => {
+const Map = ({ operators, ports, clusters, proposals, selectedClusterId, zoomToClusterId, zoomToPortId, zoomToOperatorId, onSelectOperator, onSelectProposal, onClearSelection, hasActiveFilter }: MapProps) => {
     const [zoomLevel, setZoomLevel] = useState(4); // Default start zoom
 
     // Aggregation Logic
     // If zoom < 8, show Ports. 
-    // If zoom >= 8, show Terminals.
-    // BUT if we have an active filter (drilled down), we might want to always show terminals? 
-    // Let's keep distinct behavior: if we have active filter, likely we are zoomed in or want to see terminals.
+    // If zoom >= 8, show Operators.
+    // BUT if we have an active filter (drilled down), we might want to always show operators? 
+    // Let's keep distinct behavior: if we have active filter, likely we are zoomed in or want to see operators.
 
-    // Logic update: If filtered to a single port (few terminals), likely want to see terminals immediately.
+    // Logic update: If filtered to a single port (few operators), likely want to see operators immediately.
     // Zoom < 6: Show Clusters (Orange)
     // 6 <= Zoom < 9: Show Ports (Yellow)
-    // Zoom >= 9: Show Terminals (Acid Lime)
+    // Zoom >= 9: Show Operators (Acid Lime)
 
     const showClusters = !hasActiveFilter && zoomLevel < 6;
     const showPorts = !hasActiveFilter && zoomLevel >= 6 && zoomLevel < 9;
@@ -311,28 +311,28 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
 
                 {/* Cluster Markers (Aggregated) */}
                 {showClusters && (() => {
-                    // Calculate min/max terminal counts across all clusters for size scaling
-                    const clusterTerminalCounts = clusters.map(cluster => {
+                    // Calculate min/max operator counts across all clusters for size scaling
+                    const clusterOperatorCounts = clusters.map(cluster => {
                         const clusterPorts = ports.filter(p => p.clusterId === cluster.id);
-                        const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
-                        return clusterTerminals.length;
+                        const clusterOperators = filterValidOperators(operators.filter(o => clusterPorts.some(p => p.id === o.portId)));
+                        return clusterOperators.length;
                     }).filter(count => count > 0);
 
-                    const minTerminalCount = clusterTerminalCounts.length > 0 ? Math.min(...clusterTerminalCounts) : 0;
-                    const maxTerminalCount = clusterTerminalCounts.length > 0 ? Math.max(...clusterTerminalCounts) : 0;
+                    const minOperatorCount = clusterOperatorCounts.length > 0 ? Math.min(...clusterOperatorCounts) : 0;
+                    const maxOperatorCount = clusterOperatorCounts.length > 0 ? Math.max(...clusterOperatorCounts) : 0;
 
                     return clusters.map(cluster => {
                         // Find ports in this cluster
                         const clusterPorts = ports.filter(p => p.clusterId === cluster.id);
-                        // Find terminals in these ports and filter for valid coordinates
-                        const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
-                        const terminalCount = clusterTerminals.length;
+                        // Find operators in these ports and filter for valid coordinates
+                        const clusterOperators = filterValidOperators(operators.filter(o => clusterPorts.some(p => p.id === o.portId)));
+                        const operatorCount = clusterOperators.length;
 
-                        if (terminalCount === 0) return null;
+                        if (operatorCount === 0) return null;
 
-                        // Calculate Centroid from terminal coordinates
-                        const lats = clusterTerminals.map(t => t.latitude);
-                        const lngs = clusterTerminals.map(t => t.longitude);
+                        // Calculate Centroid from operator coordinates
+                        const lats = clusterOperators.map(o => o.latitude!);
+                        const lngs = clusterOperators.map(o => o.longitude!);
                         if (lats.length === 0) return null;
 
                         const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
@@ -342,7 +342,7 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
                             <Marker
                                 key={cluster.id}
                                 position={[centerLat, centerLng]}
-                                icon={createClusterIcon(terminalCount, cluster.priorityTier, minTerminalCount, maxTerminalCount)}
+                                icon={createClusterIcon(operatorCount, cluster.priorityTier, minOperatorCount, maxOperatorCount)}
                                 eventHandlers={{
                                     click: (e) => {
                                         e.target._map.setView([centerLat, centerLng], 8); // Zoom in to port view
@@ -356,7 +356,7 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
                                         <div className="mt-1 text-xs">
                                             <span className="font-semibold">Priority Tier:</span> {cluster.priorityTier}
                                         </div>
-                                        <p className="text-xs mt-1 font-semibold">{terminalCount} Terminals</p>
+                                        <p className="text-xs mt-1 font-semibold">{operatorCount} Operators</p>
                                         {cluster.description && (
                                             <p className="text-xs mt-1 text-gray-500 italic">{cluster.description}</p>
                                         )}
@@ -370,18 +370,18 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
 
                 {/* Port Markers (Aggregated) */}
                 {showPorts && ports.map(port => {
-                    // Check if this port has any visible terminals (filtered)
+                    // Check if this port has any visible operators (filtered)
                     // Note: If we are in "showPorts" mode (zoomed out), we generally want to verify 
-                    // if the port has terminals relevant to the dataset.
-                    // Counting terminals for this port with valid coordinates:
-                    const portTerminals = filterValidTerminals(terminals.filter(t => t.portId === port.id));
-                    const terminalCount = portTerminals.length;
+                    // if the port has operators relevant to the dataset.
+                    // Counting operators for this port with valid coordinates:
+                    const portOperators = filterValidOperators(operators.filter(o => o.portId === port.id));
+                    const operatorCount = portOperators.length;
 
-                    if (terminalCount === 0) return null;
+                    if (operatorCount === 0) return null;
 
-                    // Calculate port position from terminal coordinates (centroid)
-                    const lats = portTerminals.map(t => t.latitude);
-                    const lngs = portTerminals.map(t => t.longitude);
+                    // Calculate port position from operator coordinates (centroid)
+                    const lats = portOperators.map(o => o.latitude!);
+                    const lngs = portOperators.map(o => o.longitude!);
                     const portLat = lats.reduce((a, b) => a + b, 0) / lats.length;
                     const portLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
 
@@ -389,7 +389,7 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
                         <Marker
                             key={port.id}
                             position={[portLat, portLng]}
-                            icon={createPortCountIcon(terminalCount)}
+                            icon={createPortCountIcon(operatorCount)}
                             eventHandlers={{
                                 click: (e) => {
                                     e.target._map.setView([portLat, portLng], 10);
@@ -400,7 +400,7 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
                                 <div className="p-1">
                                     <h3 className="font-bold text-sm">{port.name}</h3>
                                     <p className="text-xs text-gray-600">{port.country}</p>
-                                    <p className="text-xs mt-1 font-semibold">{terminalCount} Terminals</p>
+                                    <p className="text-xs mt-1 font-semibold">{operatorCount} Operators</p>
                                     <p className="text-xs mt-1 italic text-gray-500">Zoom in to see details</p>
                                 </div>
                             </Popup>
@@ -408,30 +408,71 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
                     );
                 })}
 
-                {/* Terminal Markers (Detail) */}
-                {!showPorts && !showClusters && terminals
-                    .filter(terminal => isValidCoordinates(terminal.latitude, terminal.longitude))
-                    .map((terminal) => {
-                        const port = ports.find(p => p.id === terminal.portId);
+                {/* Operator Markers (Detail) */}
+                {!showPorts && !showClusters && operators
+                    .filter(operator => operator.latitude !== null && operator.longitude !== null && isValidCoordinates(operator.latitude!, operator.longitude!))
+                    .map((operator) => {
+                        const port = ports.find(p => p.id === operator.portId);
+                        // Also show location markers if operator has multiple locations
+                        const locations = operator.locations || [];
                         return (
-                            <Marker
-                                key={terminal.id}
-                                position={[terminal.latitude, terminal.longitude]}
-                                icon={terminalIcon}
-                                eventHandlers={{
-                                    click: () => onSelectTerminal(terminal.id),
-                                }}
-                            >
-                                <Popup>
-                                    <div className="p-1">
-                                        <h3 className="font-bold text-sm">{terminal.name}</h3>
-                                        <p className="text-xs text-gray-600">{port?.name}, {port?.country}</p>
-                                        <div className="mt-1 text-xs">
-                                            <span className="font-semibold">Capacity:</span> {terminal.capacity}
+                            <div key={operator.id}>
+                                {/* Primary operator marker */}
+                                <Marker
+                                    position={[operator.latitude!, operator.longitude!]}
+                                    icon={operatorIcon}
+                                    eventHandlers={{
+                                        click: () => onSelectOperator(operator.id),
+                                    }}
+                                >
+                                    <Popup>
+                                        <div className="p-1">
+                                            <h3 className="font-bold text-sm">{operator.name}</h3>
+                                            <p className="text-xs text-gray-600">{port?.name}, {port?.country}</p>
+                                            <div className="mt-1 text-xs">
+                                                <span className="font-semibold">Type:</span> {operator.operatorType === 'commercial' ? 'Commercial' : 'Captive'}
+                                            </div>
+                                            {operator.capacity && (
+                                                <div className="mt-1 text-xs">
+                                                    <span className="font-semibold">Capacity:</span> {operator.capacity}
+                                                </div>
+                                            )}
+                                            {operator.parentCompanies && operator.parentCompanies.length > 0 && (
+                                                <div className="mt-1 text-xs">
+                                                    <span className="font-semibold">Parent:</span> {operator.parentCompanies.join(', ')}
+                                                </div>
+                                            )}
+                                            {locations.length > 0 && (
+                                                <div className="mt-1 text-xs text-gray-500">
+                                                    {locations.length} location(s)
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                </Popup>
-                            </Marker>
+                                    </Popup>
+                                </Marker>
+                                {/* Additional location markers if operator has multiple locations */}
+                                {locations.map((location, idx) => {
+                                    if (!location.latitude || !location.longitude) return null;
+                                    if (location.latitude === operator.latitude && location.longitude === operator.longitude) return null; // Skip if same as primary
+                                    return (
+                                        <Marker
+                                            key={`${operator.id}-loc-${idx}`}
+                                            position={[location.latitude, location.longitude]}
+                                            icon={operatorIcon}
+                                            eventHandlers={{
+                                                click: () => onSelectOperator(operator.id),
+                                            }}
+                                        >
+                                            <Popup>
+                                                <div className="p-1">
+                                                    <h3 className="font-bold text-sm">{location.name || operator.name}</h3>
+                                                    <p className="text-xs text-gray-500">Location of {operator.name}</p>
+                                                </div>
+                                            </Popup>
+                                        </Marker>
+                                    );
+                                })}
+                            </div>
                         );
                     })}
 
@@ -477,9 +518,9 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
                     selectedClusterId={selectedClusterId}
                     zoomToClusterId={zoomToClusterId}
                     zoomToPortId={zoomToPortId}
-                    zoomToTerminalId={zoomToTerminalId}
+                    zoomToOperatorId={zoomToOperatorId}
                     ports={ports}
-                    terminals={terminals}
+                    operators={operators}
                     proposals={proposals}
                     hasActiveFilter={hasActiveFilter}
                 />
@@ -491,7 +532,7 @@ const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToC
                     <button
                         onClick={onClearSelection}
                         className="bg-white border-2 border-gray-300 rounded shadow-md px-2 py-1 text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center"
-                        title="Show all terminals"
+                        title="Show all operators"
                     >
                         <span>✖ Clear Filter</span>
                     </button>

@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: 'desc' }
         });
 
-        // Get terminal proposals count
-        const terminalProposals = await prisma.terminalProposal.findMany({
+        // Get operator proposals count
+        const operatorProposals = await prisma.terminalOperatorProposal.findMany({
             where: {
                 port: clusterId ? { clusterId } : undefined,
                 status: 'pending'
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
             jobs,
             stats,
             avgProgress,
-            terminalProposalsCount: terminalProposals.length,
-            terminalProposals: terminalProposals
+            operatorProposalsCount: operatorProposals.length,
+            operatorProposals: operatorProposals
         }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },

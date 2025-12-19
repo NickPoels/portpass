@@ -71,7 +71,7 @@ export const ActionPanel = ({ onAddCluster, onAddPort, onAddTerminal, onViewProp
                             className="w-full flex items-center space-x-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
                         >
                             <PlusCircle className="w-4 h-4 text-gray-500" />
-                            <span>Add Terminal</span>
+                            <span>Add Terminal Operator</span>
                         </button>
                         {onViewProposals && (
                             <button
@@ -79,7 +79,7 @@ export const ActionPanel = ({ onAddCluster, onAddPort, onAddTerminal, onViewProp
                                 className="w-full flex items-center space-x-2 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left border-t border-gray-100"
                             >
                                 <FileText className="w-4 h-4 text-gray-500" />
-                                <span>View Terminal Proposals</span>
+                                <span>View Operator Proposals</span>
                             </button>
                         )}
                         {onDataQualityCheck && (

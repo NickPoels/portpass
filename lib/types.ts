@@ -30,6 +30,14 @@ export type ISPSRiskLevel = "Low" | "Medium" | "High" | "Very High";
 
 export type ISPSEnforcementStrength = "Weak" | "Moderate" | "Strong" | "Very Strong";
 
+export type OperatorType = "commercial" | "captive";
+
+export interface TerminalLocation {
+    name: string;
+    latitude: number;
+    longitude: number;
+}
+
 export interface Cluster {
     id: ClusterId;
     name: string;
@@ -68,32 +76,42 @@ export interface Port {
     lastDeepResearchReport?: string | null;
 }
 
-export interface Terminal {
+export interface TerminalOperator {
     id: string;
     name: string;
     portId: string;
-    // properties derived from port are removed from here
-    latitude: number;
-    longitude: number;
-    cargoTypes: string[];
-    capacity: string;
-    notes?: string;
-
-    // Deep Research Fields
-    operatorGroup?: string | null;
-    lastDeepResearchAt?: string | null; // ISO string format
-    lastDeepResearchSummary?: string | null;
-    lastDeepResearchReport?: string | null;
+    capacity: string | null;
+    cargoTypes: CargoType[];
+    operatorType: OperatorType;
+    parentCompanies: string[] | null; // Array of parent company names
+    strategicNotes: string | null;
+    latitude: number | null; // Primary location for map centering
+    longitude: number | null;
+    locations: TerminalLocation[] | null; // Multiple terminal locations for visualization
+    lastDeepResearchAt: string | null; // ISO string format
+    lastDeepResearchSummary: string | null;
+    lastDeepResearchReport: string | null;
 }
 
-export interface TerminalProposal {
+export interface TerminalOperatorProposal {
     id: string;
     portId: string;
     name: string;
+    operatorType: OperatorType | null;
+    parentCompanies: string[] | null;
+    capacity: string | null;
+    cargoTypes: CargoType[] | null;
     latitude: number | null;
     longitude: number | null;
-    address?: string | null;  // Address/location description
+    locations: TerminalLocation[] | null;
     status: "pending" | "approved" | "rejected";
     createdAt: string;  // ISO string
     approvedAt?: string | null;  // ISO string
+}
+
+export interface ParentCompany {
+    id: string;
+    name: string;
+    description: string | null;
+    website: string | null;
 }

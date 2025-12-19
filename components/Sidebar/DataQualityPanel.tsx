@@ -14,8 +14,8 @@ interface PortClusterCheck extends ValidationResult {
     portsPerCluster: Array<{ clusterId: string; clusterName: string; portCount: number }>;
 }
 
-interface TerminalPortCheck extends ValidationResult {
-    terminalsPerPort: Array<{ portId: string; portName: string; terminalCount: number }>;
+interface OperatorPortCheck extends ValidationResult {
+    operatorsPerPort: Array<{ portId: string; portName: string; operatorCount: number }>;
 }
 
 interface DataQualityCheckResult {
@@ -23,10 +23,10 @@ interface DataQualityCheckResult {
     statistics: {
         totalClusters: number;
         totalPorts: number;
-        totalTerminals: number;
+        totalOperators: number;
     };
     portClusterCheck: PortClusterCheck;
-    terminalPortCheck: TerminalPortCheck;
+    operatorPortCheck: OperatorPortCheck;
 }
 
 interface DataQualityPanelProps {
@@ -36,7 +36,7 @@ interface DataQualityPanelProps {
 export const DataQualityPanel = ({ onClose }: DataQualityPanelProps) => {
     const [result, setResult] = useState<DataQualityCheckResult | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['summary', 'portCluster', 'terminalPort']));
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['summary', 'portCluster', 'operatorPort']));
 
     useEffect(() => {
         loadDataQualityCheck();
@@ -172,8 +172,8 @@ export const DataQualityPanel = ({ onClose }: DataQualityPanelProps) => {
                                 <span className="text-sm font-medium text-gray-900">{result.statistics.totalPorts}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Total Terminals:</span>
-                                <span className="text-sm font-medium text-gray-900">{result.statistics.totalTerminals}</span>
+                                <span className="text-sm text-gray-600">Total Operators:</span>
+                                <span className="text-sm font-medium text-gray-900">{result.statistics.totalOperators}</span>
                             </div>
                         </div>
                     )}
@@ -251,36 +251,36 @@ export const DataQualityPanel = ({ onClose }: DataQualityPanelProps) => {
                     )}
                 </div>
 
-                {/* One Terminal Per Port Check */}
+                {/* Operators Per Port Check */}
                 <div className="border border-gray-200 rounded-lg">
                     <button
-                        onClick={() => toggleSection('terminalPort')}
+                        onClick={() => toggleSection('operatorPort')}
                         className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
                     >
                         <div className="flex items-center space-x-2">
-                            <h3 className="font-semibold text-gray-900">One Terminal Per Port</h3>
-                            {result.terminalPortCheck.passed ? (
+                            <h3 className="font-semibold text-gray-900">Operators Per Port</h3>
+                            {result.operatorPortCheck.passed ? (
                                 <Check className="h-4 w-4 text-green-600" />
                             ) : (
                                 <XCircle className="h-4 w-4 text-red-600" />
                             )}
                         </div>
-                        {expandedSections.has('terminalPort') ? (
+                        {expandedSections.has('operatorPort') ? (
                             <ChevronUp className="h-4 w-4 text-gray-500" />
                         ) : (
                             <ChevronDown className="h-4 w-4 text-gray-500" />
                         )}
                     </button>
-                    {expandedSections.has('terminalPort') && (
+                    {expandedSections.has('operatorPort') && (
                         <div className="p-4 space-y-4">
-                            {result.terminalPortCheck.errors.length > 0 && (
+                            {result.operatorPortCheck.errors.length > 0 && (
                                 <div className="space-y-2">
                                     <div className="flex items-center space-x-2 text-red-600">
                                         <AlertTriangle className="h-4 w-4" />
-                                        <span className="text-sm font-medium">Errors ({result.terminalPortCheck.errors.length})</span>
+                                        <span className="text-sm font-medium">Errors ({result.operatorPortCheck.errors.length})</span>
                                     </div>
                                     <div className="space-y-1">
-                                        {result.terminalPortCheck.errors.map((error, idx) => (
+                                        {result.operatorPortCheck.errors.map((error, idx) => (
                                             <div key={idx} className="text-xs text-red-700 bg-red-50 p-2 rounded">
                                                 <span className="font-medium">{error.name}</span> ({error.id}): {error.message}
                                             </div>
@@ -288,14 +288,14 @@ export const DataQualityPanel = ({ onClose }: DataQualityPanelProps) => {
                                     </div>
                                 </div>
                             )}
-                            {result.terminalPortCheck.warnings.length > 0 && (
+                            {result.operatorPortCheck.warnings.length > 0 && (
                                 <div className="space-y-2">
                                     <div className="flex items-center space-x-2 text-yellow-600">
                                         <AlertTriangle className="h-4 w-4" />
-                                        <span className="text-sm font-medium">Warnings ({result.terminalPortCheck.warnings.length})</span>
+                                        <span className="text-sm font-medium">Warnings ({result.operatorPortCheck.warnings.length})</span>
                                     </div>
                                     <div className="space-y-1">
-                                        {result.terminalPortCheck.warnings.map((warning, idx) => (
+                                        {result.operatorPortCheck.warnings.map((warning, idx) => (
                                             <div key={idx} className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded">
                                                 <span className="font-medium">{warning.name}</span> ({warning.id}): {warning.message}
                                             </div>
@@ -303,23 +303,23 @@ export const DataQualityPanel = ({ onClose }: DataQualityPanelProps) => {
                                     </div>
                                 </div>
                             )}
-                            {result.terminalPortCheck.errors.length === 0 && result.terminalPortCheck.warnings.length === 0 && (
+                            {result.operatorPortCheck.errors.length === 0 && result.operatorPortCheck.warnings.length === 0 && (
                                 <div className="text-sm text-green-700 bg-green-50 p-3 rounded">
-                                    ✓ All terminals are correctly assigned to ports
+                                    ✓ All operators are correctly assigned to ports
                                 </div>
                             )}
                             <div className="border-t pt-4">
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">Terminals Per Port</h4>
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Operators Per Port</h4>
                                 <div className="space-y-1 max-h-48 overflow-y-auto">
-                                    {result.terminalPortCheck.terminalsPerPort.length > 0 ? (
-                                        result.terminalPortCheck.terminalsPerPort.map((item, idx) => (
+                                    {result.operatorPortCheck.operatorsPerPort.length > 0 ? (
+                                        result.operatorPortCheck.operatorsPerPort.map((item, idx) => (
                                             <div key={idx} className="flex justify-between text-xs py-1">
                                                 <span className="text-gray-600">{item.portName}</span>
-                                                <span className="font-medium text-gray-900">{item.terminalCount} terminal(s)</span>
+                                                <span className="font-medium text-gray-900">{item.operatorCount} operator(s)</span>
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="text-xs text-gray-500">No terminals found</div>
+                                        <div className="text-xs text-gray-500">No operators found</div>
                                     )}
                                 </div>
                             </div>

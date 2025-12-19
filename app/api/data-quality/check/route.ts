@@ -15,13 +15,13 @@ interface DataQualityCheckResult {
     statistics: {
         totalClusters: number;
         totalPorts: number;
-        totalTerminals: number;
+        totalOperators: number;
     };
     portClusterCheck: ValidationResult & {
         portsPerCluster: Array<{ clusterId: string; clusterName: string; portCount: number }>;
     };
-    terminalPortCheck: ValidationResult & {
-        terminalsPerPort: Array<{ portId: string; portName: string; terminalCount: number }>;
+    operatorPortCheck: ValidationResult & {
+        operatorsPerPort: Array<{ portId: string; portName: string; operatorCount: number }>;
     };
 }
 
@@ -38,13 +38,13 @@ export async function GET(request: NextRequest) {
         const ports = await prisma.port.findMany({
             include: { 
                 cluster: true,
-                terminals: true
+                terminalOperators: true
             },
             orderBy: { clusterId: 'asc' }
         });
 
-        // Get all terminals with their ports
-        const terminals = await prisma.terminal.findMany({
+        // Get all operators with their ports
+        const operators = await prisma.terminalOperator.findMany({
             include: { port: true },
             orderBy: { portId: 'asc' }
         });
@@ -94,50 +94,50 @@ export async function GET(request: NextRequest) {
             portCount: data.portCount
         })).sort((a, b) => b.portCount - a.portCount);
 
-        // Validate: One Terminal Per Port
-        const terminalPortErrors: Array<{ id: string; name: string; message: string }> = [];
-        const terminalPortWarnings: Array<{ id: string; name: string; message: string }> = [];
-        const terminalsPerPort = new Map<string, { portName: string; terminalCount: number }>();
+        // Validate: Operators Per Port
+        const operatorPortErrors: Array<{ id: string; name: string; message: string }> = [];
+        const operatorPortWarnings: Array<{ id: string; name: string; message: string }> = [];
+        const operatorsPerPort = new Map<string, { portName: string; operatorCount: number }>();
 
-        for (const terminal of terminals) {
-            // Check if terminal has portId
-            if (!terminal.portId) {
-                terminalPortErrors.push({
-                    id: terminal.id,
-                    name: terminal.name,
-                    message: 'Terminal does not have a portId assigned'
+        for (const operator of operators) {
+            // Check if operator has portId
+            if (!operator.portId) {
+                operatorPortErrors.push({
+                    id: operator.id,
+                    name: operator.name,
+                    message: 'Operator does not have a portId assigned'
                 });
                 continue;
             }
 
             // Check if port exists
-            if (!terminal.port) {
-                terminalPortErrors.push({
-                    id: terminal.id,
-                    name: terminal.name,
-                    message: `Terminal references invalid portId: ${terminal.portId}`
+            if (!operator.port) {
+                operatorPortErrors.push({
+                    id: operator.id,
+                    name: operator.name,
+                    message: `Operator references invalid portId: ${operator.portId}`
                 });
                 continue;
             }
 
-            // Count terminals per port
-            const existing = terminalsPerPort.get(terminal.portId);
+            // Count operators per port
+            const existing = operatorsPerPort.get(operator.portId);
             if (existing) {
-                existing.terminalCount++;
+                existing.operatorCount++;
             } else {
-                terminalsPerPort.set(terminal.portId, {
-                    portName: terminal.port.name,
-                    terminalCount: 1
+                operatorsPerPort.set(operator.portId, {
+                    portName: operator.port.name,
+                    operatorCount: 1
                 });
             }
         }
 
-        // Convert terminalsPerPort map to array
-        const terminalsPerPortArray = Array.from(terminalsPerPort.entries()).map(([portId, data]) => ({
+        // Convert operatorsPerPort map to array
+        const operatorsPerPortArray = Array.from(operatorsPerPort.entries()).map(([portId, data]) => ({
             portId,
             portName: data.portName,
-            terminalCount: data.terminalCount
-        })).sort((a, b) => b.terminalCount - a.terminalCount);
+            operatorCount: data.operatorCount
+        })).sort((a, b) => b.operatorCount - a.operatorCount);
 
         // Build result
         const portClusterCheck: ValidationResult & { portsPerCluster: typeof portsPerClusterArray } = {
@@ -147,22 +147,22 @@ export async function GET(request: NextRequest) {
             portsPerCluster: portsPerClusterArray
         };
 
-        const terminalPortCheck: ValidationResult & { terminalsPerPort: typeof terminalsPerPortArray } = {
-            passed: terminalPortErrors.length === 0 && terminalPortWarnings.length === 0,
-            errors: terminalPortErrors,
-            warnings: terminalPortWarnings,
-            terminalsPerPort: terminalsPerPortArray
+        const operatorPortCheck: ValidationResult & { operatorsPerPort: typeof operatorsPerPortArray } = {
+            passed: operatorPortErrors.length === 0 && operatorPortWarnings.length === 0,
+            errors: operatorPortErrors,
+            warnings: operatorPortWarnings,
+            operatorsPerPort: operatorsPerPortArray
         };
 
         const result: DataQualityCheckResult = {
-            overallStatus: portClusterCheck.passed && terminalPortCheck.passed ? 'pass' : 'fail',
+            overallStatus: portClusterCheck.passed && operatorPortCheck.passed ? 'pass' : 'fail',
             statistics: {
                 totalClusters: clusters.length,
                 totalPorts: ports.length,
-                totalTerminals: terminals.length
+                totalOperators: operators.length
             },
             portClusterCheck,
-            terminalPortCheck
+            operatorPortCheck
         };
 
         return new Response(JSON.stringify(result), {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Port, Cluster, ISPSRiskLevel, ISPSEnforcementStrength, TerminalProposal } from "@/lib/types";
+import { Port, Cluster, ISPSRiskLevel, ISPSEnforcementStrength, TerminalOperatorProposal } from "@/lib/types";
 import { X, Save, AlertTriangle, Copy, RotateCw, AlertCircle, Check, XCircle, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 import ReactMarkdown from "react-markdown";
@@ -18,7 +18,7 @@ interface PortDetailProps {
     onClose: () => void;
     onUpdate: (updated: Port) => void;
     onDelete: () => void;
-    onProposalsChange?: (proposals: TerminalProposal[]) => void;
+    onProposalsChange?: (proposals: TerminalOperatorProposal[]) => void;
     selectedProposalId?: string | null;
 }
 
@@ -45,21 +45,22 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
     const [approvedFields, setApprovedFields] = useState<Set<string>>(new Set());
     const [notesProposal, setNotesProposal] = useState<{currentNotes: string, newFindings: string, combinedNotes: string} | null>(null);
     
-    // Terminal discovery state
-    const [isFindingTerminals, setIsFindingTerminals] = useState(false);
-    const [terminalDiscoveryStatus, setTerminalDiscoveryStatus] = useState("");
-    const [terminalDiscoveryProgress, setTerminalDiscoveryProgress] = useState(0);
-    const [terminalProposals, setTerminalProposals] = useState<Array<{
+    // Operator discovery state
+    const [isFindingOperators, setIsFindingOperators] = useState(false);
+    const [operatorDiscoveryStatus, setOperatorDiscoveryStatus] = useState("");
+    const [operatorDiscoveryProgress, setOperatorDiscoveryProgress] = useState(0);
+    const [operatorProposals, setOperatorProposals] = useState<Array<{
         id: string;
         name: string;
+        operatorType: string | null;
         latitude: number | null;
         longitude: number | null;
         status: string;
     }>>([]);
-    const [selectedTerminalIds, setSelectedTerminalIds] = useState<Set<string>>(new Set());
-    const [isProcessingTerminals, setIsProcessingTerminals] = useState(false);
+    const [selectedOperatorIds, setSelectedOperatorIds] = useState<Set<string>>(new Set());
+    const [isProcessingOperators, setIsProcessingOperators] = useState(false);
     const [highlightedProposalId, setHighlightedProposalId] = useState<string | null>(null);
-    const terminalAbortControllerRef = useRef<AbortController | null>(null);
+    const operatorAbortControllerRef = useRef<AbortController | null>(null);
     const proposalRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
     // Extract research process (thinking tags) from content
@@ -168,28 +169,32 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
             setAvailableReports(parsed);
         }
         
-        // Load terminal proposals
-        loadTerminalProposals();
+        // Load operator proposals
+        loadOperatorProposals();
     }, [port]);
 
     // Notify parent when proposals change
     useEffect(() => {
         if (onProposalsChange) {
-            // Convert to TerminalProposal format
-            const proposals: TerminalProposal[] = terminalProposals.map(p => ({
+            // Convert to TerminalOperatorProposal format
+            const proposals: TerminalOperatorProposal[] = operatorProposals.map(p => ({
                 id: p.id,
                 portId: port.id,
                 name: p.name,
+                operatorType: (p.operatorType === 'commercial' || p.operatorType === 'captive') ? p.operatorType : null,
+                parentCompanies: null, // Will be loaded from API
+                capacity: null,
+                cargoTypes: null,
                 latitude: p.latitude,
                 longitude: p.longitude,
-                address: null, // Address not stored in current schema, but available from API if needed
+                locations: null,
                 status: (p.status || "pending") as "pending" | "approved" | "rejected",
-                createdAt: new Date().toISOString(), // API returns Date, but we use simplified format
+                createdAt: new Date().toISOString(),
                 approvedAt: null
             }));
             onProposalsChange(proposals);
         }
-    }, [terminalProposals, port.id, onProposalsChange]);
+    }, [operatorProposals, port.id, onProposalsChange]);
 
     // Keyboard navigation for report view
     useEffect(() => {
@@ -233,15 +238,22 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [showFullReport, selectedReportIndex, availableReports.length, availableReports, fullReport, port.lastDeepResearchReport]);
 
-    const loadTerminalProposals = async () => {
+    const loadOperatorProposals = async () => {
         try {
-            const response = await fetch(`/api/terminal-proposals?portId=${port.id}&status=pending`);
+            const response = await fetch(`/api/operator-proposals?portId=${port.id}&status=pending`);
             if (response.ok) {
                 const data = await response.json();
-                setTerminalProposals(data);
+                setOperatorProposals(data.map((p: any) => ({
+                    id: p.id,
+                    name: p.name,
+                    operatorType: p.operatorType,
+                    latitude: p.latitude,
+                    longitude: p.longitude,
+                    status: p.status
+                })));
             }
         } catch (error) {
-            console.error('Failed to load terminal proposals:', error);
+            console.error('Failed to load operator proposals:', error);
         }
     };
 
@@ -532,24 +544,24 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
         toast.success('Changes discarded');
     };
 
-    const startFindTerminals = async () => {
-        setIsFindingTerminals(true);
-        setTerminalDiscoveryStatus("Initializing...");
-        setTerminalDiscoveryProgress(0);
+    const startFindOperators = async () => {
+        setIsFindingOperators(true);
+        setOperatorDiscoveryStatus("Initializing...");
+        setOperatorDiscoveryProgress(0);
 
-        terminalAbortControllerRef.current = new AbortController();
-        const abortController = terminalAbortControllerRef.current;
+        operatorAbortControllerRef.current = new AbortController();
+        const abortController = operatorAbortControllerRef.current;
 
         try {
-            const response = await fetch(`/api/ports/${port.id}/find-terminals`, {
+            const response = await fetch(`/api/ports/${port.id}/find-operators`, {
                 method: "POST",
                 signal: abortController.signal,
             });
 
             if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
                 const errorData = await response.json();
-                toast.error(errorData.message || 'Failed to start terminal discovery');
-                setIsFindingTerminals(false);
+                toast.error(errorData.message || 'Failed to start operator discovery');
+                setIsFindingOperators(false);
                 return;
             }
 
@@ -581,14 +593,14 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                         const data = JSON.parse(dataLine.replace("data: ", ""));
 
                         if (eventType === "status") {
-                            setTerminalDiscoveryStatus(data.message);
-                            setTerminalDiscoveryProgress(data.progress || 0);
+                            setOperatorDiscoveryStatus(data.message);
+                            setOperatorDiscoveryProgress(data.progress || 0);
                         } else if (eventType === "preview") {
-                            setTerminalProposals(data.proposals || []);
-                            setTerminalDiscoveryStatus("Terminal discovery complete");
-                            setIsFindingTerminals(false);
-                            await loadTerminalProposals(); // Reload to get all proposals
-                            toast.success(`Found ${data.new_proposals} new terminal(s)`);
+                            setOperatorProposals(data.proposals || []);
+                            setOperatorDiscoveryStatus("Operator discovery complete");
+                            setIsFindingOperators(false);
+                            await loadOperatorProposals(); // Reload to get all proposals
+                            toast.success(`Found ${data.new_proposals} new operator(s)`);
                         } else if (eventType === "error") {
                             const errorInfo: ErrorInfo = {
                                 category: data.category || 'UNKNOWN_ERROR',
@@ -596,7 +608,7 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                                 originalError: data.originalError,
                                 retryable: data.retryable !== false
                             };
-                            setIsFindingTerminals(false);
+                            setIsFindingOperators(false);
                             toast.error(errorInfo.message);
                         }
                     }
@@ -604,28 +616,28 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
             }
         } catch (e) {
             if (e instanceof Error && (e.name === 'AbortError' || e.message.includes('aborted'))) {
-                setIsFindingTerminals(false);
-                setTerminalDiscoveryStatus("Cancelled");
-                toast.success('Terminal discovery cancelled');
+                setIsFindingOperators(false);
+                setOperatorDiscoveryStatus("Cancelled");
+                toast.success('Operator discovery cancelled');
                 return;
             }
             
-            setIsFindingTerminals(false);
-            toast.error('Failed to discover terminals. Please try again.');
+            setIsFindingOperators(false);
+            toast.error('Failed to discover operators. Please try again.');
         }
     };
 
-    const cancelFindTerminals = () => {
-        if (terminalAbortControllerRef.current) {
-            terminalAbortControllerRef.current.abort();
-            terminalAbortControllerRef.current = null;
+    const cancelFindOperators = () => {
+        if (operatorAbortControllerRef.current) {
+            operatorAbortControllerRef.current.abort();
+            operatorAbortControllerRef.current = null;
         }
-        setIsFindingTerminals(false);
-        setTerminalDiscoveryStatus("Cancelling...");
+        setIsFindingOperators(false);
+        setOperatorDiscoveryStatus("Cancelling...");
     };
 
-    const handleTerminalToggle = (id: string) => {
-        setSelectedTerminalIds(prev => {
+    const handleOperatorToggle = (id: string) => {
+        setSelectedOperatorIds(prev => {
             const next = new Set(prev);
             if (next.has(id)) {
                 next.delete(id);
@@ -636,11 +648,11 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
         });
     };
 
-    const handleSelectAllTerminals = () => {
-        if (selectedTerminalIds.size === terminalProposals.length) {
-            setSelectedTerminalIds(new Set());
+    const handleSelectAllOperators = () => {
+        if (selectedOperatorIds.size === operatorProposals.length) {
+            setSelectedOperatorIds(new Set());
         } else {
-            setSelectedTerminalIds(new Set(terminalProposals.map(p => p.id)));
+            setSelectedOperatorIds(new Set(operatorProposals.map(p => p.id)));
         }
     };
 
@@ -668,15 +680,15 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
         }
     }, [selectedProposalId, scrollToProposal]);
 
-    const handleApproveTerminals = async (proposalIds: string[]) => {
+    const handleApproveOperators = async (proposalIds: string[]) => {
         if (proposalIds.length === 0) {
-            toast.error('Please select at least one terminal');
+            toast.error('Please select at least one operator');
             return;
         }
 
-        setIsProcessingTerminals(true);
+        setIsProcessingOperators(true);
         try {
-            const response = await fetch('/api/terminal-proposals/batch-approve', {
+            const response = await fetch('/api/operator-proposals/batch-approve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -685,32 +697,32 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                 })
             });
 
-            if (!response.ok) throw new Error('Failed to approve terminals');
+            if (!response.ok) throw new Error('Failed to approve operators');
 
             const result = await response.json();
-            toast.success(`Approved ${result.approvedCount} terminal(s). Created ${result.createdTerminals.length} terminal(s).`);
+            toast.success(`Approved ${result.approvedCount} operator(s). Created ${result.createdOperators.length} operator(s).`);
             
-            setSelectedTerminalIds(new Set());
-            await loadTerminalProposals();
+            setSelectedOperatorIds(new Set());
+            await loadOperatorProposals();
             
-            // Refresh the page data to show newly created terminals
+            // Refresh the page data to show newly created operators
             router.refresh();
         } catch (error) {
-            toast.error(`Failed to approve terminals: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(`Failed to approve operators: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
-            setIsProcessingTerminals(false);
+            setIsProcessingOperators(false);
         }
     };
 
-    const handleRejectTerminals = async (proposalIds: string[]) => {
+    const handleRejectOperators = async (proposalIds: string[]) => {
         if (proposalIds.length === 0) {
-            toast.error('Please select at least one terminal');
+            toast.error('Please select at least one operator');
             return;
         }
 
-        setIsProcessingTerminals(true);
+        setIsProcessingOperators(true);
         try {
-            const response = await fetch('/api/terminal-proposals/batch-approve', {
+            const response = await fetch('/api/operator-proposals/batch-approve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -719,17 +731,17 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                 })
             });
 
-            if (!response.ok) throw new Error('Failed to reject terminals');
+            if (!response.ok) throw new Error('Failed to reject operators');
 
             const result = await response.json();
-            toast.success(`Rejected ${result.rejectedCount} terminal(s).`);
+            toast.success(`Rejected ${result.rejectedCount} operator(s).`);
             
-            setSelectedTerminalIds(new Set());
-            await loadTerminalProposals();
+            setSelectedOperatorIds(new Set());
+            await loadOperatorProposals();
         } catch (error) {
-            toast.error(`Failed to reject terminals: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(`Failed to reject operators: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
-            setIsProcessingTerminals(false);
+            setIsProcessingOperators(false);
         }
     };
 
@@ -1108,32 +1120,32 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                     </div>
                 </div>
 
-                {/* Terminal Discovery Section */}
+                {/* Operator Discovery Section */}
                 <div className="pt-6 border-t border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Terminal Discovery</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Terminal Operator Discovery</h3>
                     
-                    {/* Find Terminals Button */}
-                    {!isFindingTerminals && (
+                    {/* Find Terminal Operators Button */}
+                    {!isFindingOperators && (
                         <button
-                            onClick={startFindTerminals}
+                            onClick={startFindOperators}
                             className="w-full py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-sm"
                         >
                             <MapPin className="h-4 w-4" />
-                            <span>Find Terminals</span>
+                            <span>Find Terminal Operators</span>
                         </button>
                     )}
 
                     {/* Discovery Progress */}
-                    {isFindingTerminals && (
+                    {isFindingOperators && (
                         <div className="space-y-3 mb-4">
                             <div className="flex items-center justify-between text-sm text-blue-700">
                                 <div className="flex items-center space-x-2">
                                     <span className="animate-spin">⏳</span>
-                                    <span className="font-medium">{terminalDiscoveryStatus}</span>
-                                    <span className="text-xs text-blue-500">({terminalDiscoveryProgress}%)</span>
+                                    <span className="font-medium">{operatorDiscoveryStatus}</span>
+                                    <span className="text-xs text-blue-500">({operatorDiscoveryProgress}%)</span>
                                 </div>
                                 <button
-                                    onClick={cancelFindTerminals}
+                                    onClick={cancelFindOperators}
                                     className="px-2 py-1 text-xs bg-white border border-blue-300 text-blue-700 rounded hover:bg-blue-100 transition-colors"
                                 >
                                     Cancel
@@ -1142,58 +1154,58 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                             <div className="h-2 bg-blue-200 rounded-full overflow-hidden">
                                 <div 
                                     className={`h-full transition-all duration-300 ${
-                                        terminalDiscoveryProgress < 50 ? 'bg-blue-500' : 
-                                        terminalDiscoveryProgress < 90 ? 'bg-yellow-500' : 
+                                        operatorDiscoveryProgress < 50 ? 'bg-blue-500' : 
+                                        operatorDiscoveryProgress < 90 ? 'bg-yellow-500' : 
                                         'bg-green-500'
                                     }`}
-                                    style={{ width: `${terminalDiscoveryProgress}%` }}
+                                    style={{ width: `${operatorDiscoveryProgress}%` }}
                                 ></div>
                             </div>
                         </div>
                     )}
 
-                    {/* Terminal Proposals List */}
-                    {terminalProposals.length > 0 && !isFindingTerminals && (
+                    {/* Operator Proposals List */}
+                    {operatorProposals.length > 0 && !isFindingOperators && (
                         <div className="mt-4 space-y-3">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-sm font-semibold text-gray-900">
-                                    Terminal Proposals ({terminalProposals.length})
+                                    Operator Proposals ({operatorProposals.length})
                                 </h4>
                                 <div className="flex items-center space-x-2">
                                     <button
-                                        onClick={handleSelectAllTerminals}
+                                        onClick={handleSelectAllOperators}
                                         className="text-xs text-blue-600 hover:text-blue-800"
                                     >
-                                        {selectedTerminalIds.size === terminalProposals.length ? 'Deselect All' : 'Select All'}
+                                        {selectedOperatorIds.size === operatorProposals.length ? 'Deselect All' : 'Select All'}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Batch Actions */}
-                            {selectedTerminalIds.size > 0 && (
+                            {selectedOperatorIds.size > 0 && (
                                 <div className="flex space-x-2">
                                     <button
-                                        onClick={() => handleApproveTerminals(Array.from(selectedTerminalIds))}
-                                        disabled={isProcessingTerminals}
+                                        onClick={() => handleApproveOperators(Array.from(selectedOperatorIds))}
+                                        disabled={isProcessingOperators}
                                         className="flex-1 flex items-center justify-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Check className="w-4 h-4" />
-                                        <span>Approve ({selectedTerminalIds.size})</span>
+                                        <span>Approve ({selectedOperatorIds.size})</span>
                                     </button>
                                     <button
-                                        onClick={() => handleRejectTerminals(Array.from(selectedTerminalIds))}
-                                        disabled={isProcessingTerminals}
+                                        onClick={() => handleRejectOperators(Array.from(selectedOperatorIds))}
+                                        disabled={isProcessingOperators}
                                         className="flex-1 flex items-center justify-center space-x-1 px-3 py-1.5 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <XCircle className="w-4 h-4" />
-                                        <span>Reject ({selectedTerminalIds.size})</span>
+                                        <span>Reject ({selectedOperatorIds.size})</span>
                                     </button>
                                 </div>
                             )}
 
                             {/* Proposals List */}
                             <div className="space-y-2 max-h-96 overflow-y-auto">
-                                {terminalProposals.map((proposal) => (
+                                {operatorProposals.map((proposal) => (
                                     <div
                                         key={proposal.id}
                                         ref={(el) => {
@@ -1206,23 +1218,32 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                                         className={`border rounded-lg p-3 cursor-pointer transition-all duration-300 ${
                                             highlightedProposalId === proposal.id
                                                 ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-300 shadow-md'
-                                                : selectedTerminalIds.has(proposal.id)
+                                                : selectedOperatorIds.has(proposal.id)
                                                 ? 'border-blue-500 bg-blue-50'
                                                 : 'border-gray-200 hover:border-gray-300'
                                         }`}
-                                        onClick={() => handleTerminalToggle(proposal.id)}
+                                        onClick={() => handleOperatorToggle(proposal.id)}
                                     >
                                         <div className="flex items-start space-x-3">
                                             <input
                                                 type="checkbox"
-                                                checked={selectedTerminalIds.has(proposal.id)}
-                                                onChange={() => handleTerminalToggle(proposal.id)}
+                                                checked={selectedOperatorIds.has(proposal.id)}
+                                                onChange={() => handleOperatorToggle(proposal.id)}
                                                 onClick={(e) => e.stopPropagation()}
                                                 className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                             />
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center space-x-2">
                                                     <h4 className="font-semibold text-gray-900">{proposal.name}</h4>
+                                                    {proposal.operatorType && (
+                                                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                                            proposal.operatorType === 'commercial' 
+                                                                ? 'bg-blue-100 text-blue-800' 
+                                                                : 'bg-green-100 text-green-800'
+                                                        }`}>
+                                                            {proposal.operatorType === 'commercial' ? 'Commercial' : 'Captive'}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {(proposal.latitude && proposal.longitude) ? (
                                                     <p className="text-xs text-gray-600 mt-1">
@@ -1236,9 +1257,9 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleApproveTerminals([proposal.id]);
+                                                        handleApproveOperators([proposal.id]);
                                                     }}
-                                                    disabled={isProcessingTerminals}
+                                                    disabled={isProcessingOperators}
                                                     className="p-1.5 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
                                                     title="Approve"
                                                 >
@@ -1247,9 +1268,9 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleRejectTerminals([proposal.id]);
+                                                        handleRejectOperators([proposal.id]);
                                                     }}
-                                                    disabled={isProcessingTerminals}
+                                                    disabled={isProcessingOperators}
                                                     className="p-1.5 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
                                                     title="Reject"
                                                 >
@@ -1263,8 +1284,8 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProp
                         </div>
                     )}
 
-                    {terminalProposals.length === 0 && !isFindingTerminals && (
-                        <p className="text-xs text-gray-500 mt-2">No pending terminal proposals. Click "Find Terminals" to discover terminals for this port.</p>
+                    {operatorProposals.length === 0 && !isFindingOperators && (
+                        <p className="text-xs text-gray-500 mt-2">No pending operator proposals. Click "Find Terminal Operators" to discover operators for this port.</p>
                     )}
                 </div>
 

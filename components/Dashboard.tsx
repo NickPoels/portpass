@@ -2,13 +2,13 @@
 
 import { useState, useMemo, useEffect } from "react";
 import * as DBActions from "@/app/actions";
-import { Terminal, Cluster, Port, ClusterId, TerminalProposal } from "@/lib/types";
+import { TerminalOperator, Cluster, Port, ClusterId, TerminalOperatorProposal } from "@/lib/types";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import { FilterPanel } from "./Sidebar/FilterPanel";
 import { ActionPanel } from "./Sidebar/ActionPanel";
-import { TerminalList } from "./Sidebar/TerminalList";
-import { TerminalDetail } from "./Sidebar/TerminalDetail";
+import { OperatorList } from "./Sidebar/OperatorList";
+import { OperatorDetail } from "./Sidebar/OperatorDetail";
 import { ClusterDetail } from "./Sidebar/ClusterDetail";
 import { PortDetail } from "./Sidebar/PortDetail";
 import { DataQualityPanel } from "./Sidebar/DataQualityPanel";
@@ -17,24 +17,24 @@ import { DataQualityPanel } from "./Sidebar/DataQualityPanel";
 const MapView = dynamic(() => import("./Map/MapView"), { ssr: false });
 
 interface DashboardProps {
-    initialTerminals: Terminal[];
+    initialOperators: TerminalOperator[];
     ports: Port[];
     clusters: Cluster[];
 }
 
 type Selection =
-    | { type: "terminal", id: string }
+    | { type: "operator", id: string }
     | { type: "port", id: string }
     | { type: "cluster", id: string }
     | { type: "proposals", clusterId?: string, portId?: string }
     | { type: "data-quality" }
     | null;
 
-export default function Dashboard({ initialTerminals, ports, clusters }: DashboardProps) {
-    const [terminals, setTerminals] = useState<Terminal[]>(initialTerminals);
+export default function Dashboard({ initialOperators, ports, clusters }: DashboardProps) {
+    const [operators, setOperators] = useState<TerminalOperator[]>(initialOperators);
     const [userPorts, setUserPorts] = useState<Port[]>(ports);
     const [userClusters, setUserClusters] = useState<Cluster[]>(clusters);
-    const [proposalsForMap, setProposalsForMap] = useState<TerminalProposal[]>([]);
+    const [proposalsForMap, setProposalsForMap] = useState<TerminalOperatorProposal[]>([]);
     const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
 
     const [selection, setSelection] = useState<Selection>(null);
@@ -46,13 +46,13 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
     // Zoom State (separate from selection - only zooms, doesn't open details)
     const [zoomToClusterId, setZoomToClusterId] = useState<string | undefined>(undefined);
     const [zoomToPortId, setZoomToPortId] = useState<string | undefined>(undefined);
-    const [zoomToTerminalId, setZoomToTerminalId] = useState<string | undefined>(undefined);
+    const [zoomToOperatorId, setZoomToOperatorId] = useState<string | undefined>(undefined);
 
 
     // Sync state when props change (e.g. after server revalidation)
     useEffect(() => {
-        setTerminals(initialTerminals);
-    }, [initialTerminals]);
+        setOperators(initialOperators);
+    }, [initialOperators]);
 
     useEffect(() => {
         setUserPorts(ports);
@@ -62,26 +62,26 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
         setUserClusters(clusters);
     }, [clusters]);
 
-    // Helper to resolve port for a terminal
+    // Helper to resolve port for an operator
     const getPort = useMemo(() => {
-        return (terminal: Terminal) => userPorts.find(p => p.id === terminal.portId);
+        return (operator: TerminalOperator) => userPorts.find(p => p.id === operator.portId);
     }, [userPorts]);
 
     // Derived State
-    const filteredTerminals = useMemo(() => {
-        return terminals.filter(t => {
-            const port = getPort(t);
+    const filteredOperators = useMemo(() => {
+        return operators.filter(o => {
+            const port = getPort(o);
             if (!port) return false;
 
             const matchesCluster = selectedClusterId === "ALL" || port.clusterId === selectedClusterId;
-            const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            const matchesSearch = o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 port.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 port.country.toLowerCase().includes(searchQuery.toLowerCase());
             return matchesCluster && matchesSearch;
         });
-    }, [terminals, selectedClusterId, searchQuery, getPort]);
+    }, [operators, selectedClusterId, searchQuery, getPort]);
 
-    // Derived Tree Data for Sidebar (Cluster -> Port -> Terminals)
+    // Derived Tree Data for Sidebar (Cluster -> Port -> Operators)
     const treeData = useMemo(() => {
         const filteredPorts = userPorts.filter(p =>
             selectedClusterId === "ALL" || p.clusterId === selectedClusterId
@@ -92,61 +92,69 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
             .map(cluster => {
                 const clusterPorts = filteredPorts.filter(p => p.clusterId === cluster.id);
 
-                const portsWithTerminals = clusterPorts.map(port => ({
+                const portsWithOperators = clusterPorts.map(port => ({
                     ...port,
-                    terminals: filteredTerminals.filter(t => t.portId === port.id)
-                })).filter(p => p.terminals.length > 0 || searchQuery === "");
+                    operators: filteredOperators.filter(o => o.portId === port.id)
+                })).filter(p => p.operators.length > 0 || searchQuery === "");
 
                 return {
                     ...cluster,
-                    ports: portsWithTerminals
+                    ports: portsWithOperators
                 };
             }).filter(c => c.ports.length > 0 || searchQuery === "");
 
         return clusterGroups;
-    }, [userClusters, userPorts, filteredTerminals, selectedClusterId, searchQuery]);
+    }, [userClusters, userPorts, filteredOperators, selectedClusterId, searchQuery]);
 
     // Creation Handlers
-    const handleCreateNewTerminal = async () => {
-        const newId = `t-${Date.now()}`;
+    const handleCreateNewOperator = async () => {
+        const newId = `op-${Date.now()}`;
         const defaultPort = userPorts[0];
 
         if (!defaultPort) {
-            toast.error("No ports available to create a terminal in.");
+            toast.error("No ports available to create an operator in.");
             return;
         }
 
-        // Calculate default coordinates from port's terminals, or use Europe center
-        const portTerminals = filteredTerminals.filter(t => t.portId === defaultPort.id);
-        let defaultLat = 48.0; // Europe center
-        let defaultLng = 10.0;
+        // Calculate default coordinates from port's operators, or use port coordinates, or use Europe center
+        const portOperators = filteredOperators.filter(o => o.portId === defaultPort.id);
+        let defaultLat = defaultPort.latitude || 48.0; // Use port coordinates or Europe center
+        let defaultLng = defaultPort.longitude || 10.0;
         
-        if (portTerminals.length > 0) {
-            const lats = portTerminals.map(t => t.latitude);
-            const lngs = portTerminals.map(t => t.longitude);
-            defaultLat = lats.reduce((a, b) => a + b, 0) / lats.length;
-            defaultLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+        if (portOperators.length > 0 && portOperators[0].latitude && portOperators[0].longitude) {
+            const lats = portOperators.filter(o => o.latitude).map(o => o.latitude!);
+            const lngs = portOperators.filter(o => o.longitude).map(o => o.longitude!);
+            if (lats.length > 0 && lngs.length > 0) {
+                defaultLat = lats.reduce((a, b) => a + b, 0) / lats.length;
+                defaultLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
+            }
         }
 
-        const newTerminal: Terminal = {
+        const newOperator: TerminalOperator = {
             id: newId,
-            name: "New Terminal",
+            name: "New Terminal Operator",
             portId: defaultPort.id,
+            capacity: null,
+            cargoTypes: [],
+            operatorType: "commercial",
+            parentCompanies: null,
+            strategicNotes: null,
             latitude: defaultLat,
             longitude: defaultLng,
-            cargoTypes: [],
-            capacity: "Unknown",
-            notes: ""
+            locations: null,
+            lastDeepResearchAt: null,
+            lastDeepResearchSummary: null,
+            lastDeepResearchReport: null
         };
-        setTerminals(prev => [...prev, newTerminal]);
-        setSelection({ type: "terminal", id: newId });
+        setOperators(prev => [...prev, newOperator]);
+        setSelection({ type: "operator", id: newId });
 
         try {
-            await DBActions.createTerminal(newTerminal);
-            toast.success('Terminal created successfully');
+            await DBActions.createTerminalOperator(newOperator);
+            toast.success('Terminal operator created successfully');
         } catch (error) {
-            toast.error(`Failed to create terminal: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            setTerminals(prev => prev.filter(t => t.id !== newId));
+            toast.error(`Failed to create operator: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setOperators(prev => prev.filter(o => o.id !== newId));
             setSelection(null);
         }
     };
@@ -204,18 +212,18 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
     };
 
     // Deletion Handlers
-    const handleDeleteTerminal = async (id: string) => {
-        const terminal = terminals.find(t => t.id === id);
-        setTerminals(prev => prev.filter(t => t.id !== id));
+    const handleDeleteOperator = async (id: string) => {
+        const operator = operators.find(o => o.id === id);
+        setOperators(prev => prev.filter(o => o.id !== id));
         setSelection(null);
         
         try {
-            await DBActions.deleteTerminal(id);
-            toast.success('Terminal deleted successfully');
+            await DBActions.deleteTerminalOperator(id);
+            toast.success('Terminal operator deleted successfully');
         } catch (error) {
-            toast.error(`Failed to delete terminal: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            if (terminal) {
-                setTerminals(prev => [...prev, terminal]);
+            toast.error(`Failed to delete operator: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            if (operator) {
+                setOperators(prev => [...prev, operator]);
             }
         }
     };
@@ -223,10 +231,10 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
     const handleDeletePort = async (id: string) => {
         const portId = id;
         const port = userPorts.find(p => p.id === portId);
-        const terminalsToRestore = terminals.filter(t => t.portId === portId);
+        const operatorsToRestore = operators.filter(o => o.portId === portId);
         
-        // Cascade: Delete terminals in this port
-        setTerminals(prev => prev.filter(t => t.portId !== portId));
+        // Cascade: Delete operators in this port
+        setOperators(prev => prev.filter(o => o.portId !== portId));
         // Delete the port
         setUserPorts(prev => prev.filter(p => p.id !== portId));
         setSelection(null);
@@ -239,7 +247,7 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
             if (port) {
                 setUserPorts(prev => [...prev, port]);
             }
-            setTerminals(prev => [...prev, ...terminalsToRestore]);
+            setOperators(prev => [...prev, ...operatorsToRestore]);
         }
     };
 
@@ -247,9 +255,9 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
         const cluster = userClusters.find(c => c.id === id);
         const portsInCluster = userPorts.filter(p => p.clusterId === id);
         const portIds = portsInCluster.map(p => p.id);
-        const terminalsToRestore = terminals.filter(t => portIds.includes(t.portId));
+        const operatorsToRestore = operators.filter(o => portIds.includes(o.portId));
         
-        setTerminals(prev => prev.filter(t => !portIds.includes(t.portId)));
+        setOperators(prev => prev.filter(o => !portIds.includes(o.portId)));
         setUserPorts(prev => prev.filter(p => p.clusterId !== id));
         setUserClusters(prev => prev.filter(c => c.id !== id));
         setSelection(null);
@@ -263,22 +271,22 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                 setUserClusters(prev => [...prev, cluster]);
             }
             setUserPorts(prev => [...prev, ...portsInCluster]);
-            setTerminals(prev => [...prev, ...terminalsToRestore]);
+            setOperators(prev => [...prev, ...operatorsToRestore]);
         }
     };
 
     // Update Handlers
-    const handleUpdateTerminal = async (updated: Terminal) => {
-        const previous = terminals.find(t => t.id === updated.id);
-        setTerminals(prev => prev.map(t => t.id === updated.id ? updated : t));
+    const handleUpdateOperator = async (updated: TerminalOperator) => {
+        const previous = operators.find(o => o.id === updated.id);
+        setOperators(prev => prev.map(o => o.id === updated.id ? updated : o));
         
         try {
-            await DBActions.updateTerminal(updated);
-            toast.success('Terminal updated successfully');
+            await DBActions.updateTerminalOperator(updated);
+            toast.success('Terminal operator updated successfully');
         } catch (error) {
-            toast.error(`Failed to update terminal: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(`Failed to update operator: ${error instanceof Error ? error.message : 'Unknown error'}`);
             if (previous) {
-                setTerminals(prev => prev.map(t => t.id === updated.id ? previous : t));
+                setOperators(prev => prev.map(o => o.id === updated.id ? previous : o));
             }
         }
     };
@@ -314,25 +322,25 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
     }
 
     // Selection Resolution
-    const selectedTerminal = selection?.type === "terminal" ? terminals.find(t => t.id === selection.id) : null;
+    const selectedOperator = selection?.type === "operator" ? operators.find(o => o.id === selection.id) : null;
     const selectedPort = selection?.type === "port" ? userPorts.find(p => p.id === selection.id) : null;
     const selectedCluster = selection?.type === "cluster" ? userClusters.find(c => c.id === selection.id) : null;
 
-    // Filtered Terminals for Map (depends on selection)
-    const mapTerminals = useMemo(() => {
-        let base = filteredTerminals;
+    // Filtered Operators for Map (depends on selection)
+    const mapOperators = useMemo(() => {
+        let base = filteredOperators;
 
         if (selection?.type === "port") {
-            base = base.filter(t => t.portId === selection.id);
+            base = base.filter(o => o.portId === selection.id);
         } else if (selection?.type === "cluster") {
             // Get all ports in this cluster
             const clusterPorts = userPorts.filter(p => p.clusterId === selection.id);
             const portIds = clusterPorts.map(p => p.id);
-            base = base.filter(t => portIds.includes(t.portId));
+            base = base.filter(o => portIds.includes(o.portId));
         }
 
         return base;
-    }, [filteredTerminals, selection, userPorts]);
+    }, [filteredOperators, selection, userPorts]);
 
     // Filtered Proposals for Map (only show proposals for selected port)
     const mapProposals = useMemo(() => {
@@ -361,9 +369,9 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
         setZoomToTerminalId(undefined);
     };
 
-    const handleZoomToTerminal = (id: string) => {
-        setZoomToTerminalId(id);
-        // Clear cluster/port zoom when zooming to terminal
+    const handleZoomToOperator = (id: string) => {
+        setZoomToOperatorId(id);
+        // Clear cluster/port zoom when zooming to operator
         setZoomToClusterId(undefined);
         setZoomToPortId(undefined);
     };
@@ -389,13 +397,13 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                             onSearchChange={setSearchQuery}
                         />
                         <div className="flex-1 overflow-y-auto">
-                            <TerminalList
+                            <OperatorList
                                 treeData={treeData}
-                                selectedTerminalId={null} // No highlighting needed in master view initially
-                                onSelectTerminal={(id: string) => setSelection({ type: "terminal", id })}
+                                selectedOperatorId={null} // No highlighting needed in master view initially
+                                onSelectOperator={(id: string) => setSelection({ type: "operator", id })}
                                 onSelectPort={(id: string) => setSelection({ type: "port", id })}
                                 onSelectCluster={(id: string) => setSelection({ type: "cluster", id })}
-                                onZoomToTerminal={handleZoomToTerminal}
+                                onZoomToOperator={handleZoomToOperator}
                                 onZoomToPort={handleZoomToPort}
                                 onZoomToCluster={handleZoomToCluster}
                             />
@@ -403,7 +411,7 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                         <ActionPanel
                             onAddCluster={handleCreateNewCluster}
                             onAddPort={handleCreateNewPort}
-                            onAddTerminal={handleCreateNewTerminal}
+                            onAddTerminal={handleCreateNewOperator}
                             onViewProposals={() => setSelection({ type: "proposals" })}
                             onDataQualityCheck={() => setSelection({ type: "data-quality" })}
                         />
@@ -411,14 +419,14 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                 ) : (
                     /* Detail Views */
                     <div className="flex-1 overflow-y-auto">
-                        {selectedTerminal && (
-                            <TerminalDetail
-                                terminal={selectedTerminal}
+                        {selectedOperator && (
+                            <OperatorDetail
+                                operator={selectedOperator}
                                 ports={userPorts}
                                 clusters={userClusters}
                                 onClose={() => setSelection(null)}
-                                onUpdate={handleUpdateTerminal}
-                                onDelete={() => handleDeleteTerminal(selectedTerminal.id)}
+                                onUpdate={handleUpdateOperator}
+                                onDelete={() => handleDeleteOperator(selectedOperator.id)}
                             />
                         )}
 
@@ -446,15 +454,15 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                         {selection?.type === "proposals" && (
                             <div className="flex flex-col h-full bg-white shadow-xl">
                                 <div className="px-4 py-3 border-b flex items-center justify-between bg-gray-50">
-                                    <h2 className="text-lg font-bold text-gray-900">Terminal Proposals</h2>
+                                    <h2 className="text-lg font-bold text-gray-900">Operator Proposals</h2>
                                     <button onClick={() => setSelection(null)} className="p-1.5 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200">
                                         <span>×</span>
                                     </button>
                                 </div>
                                 <div className="flex-1 flex items-center justify-center p-8">
                                     <div className="text-center">
-                                        <p className="text-gray-500 text-sm">Terminal proposals are now managed at the port level.</p>
-                                        <p className="text-gray-400 text-xs mt-2">Open a port to find and approve terminals.</p>
+                                        <p className="text-gray-500 text-sm">Operator proposals are now managed at the port level.</p>
+                                        <p className="text-gray-400 text-xs mt-2">Open a port to find and approve terminal operators.</p>
                                     </div>
                                 </div>
                             </div>
@@ -470,15 +478,15 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
             {/* Center: Map */}
             <div className="flex-1 relative">
                 <MapView
-                    terminals={mapTerminals}
+                    operators={mapOperators}
                     ports={userPorts}
                     clusters={userClusters}
                     proposals={mapProposals}
                     selectedClusterId={selectedClusterId === "ALL" ? undefined : selectedClusterId}
                     zoomToClusterId={zoomToClusterId}
                     zoomToPortId={zoomToPortId}
-                    zoomToTerminalId={zoomToTerminalId}
-                    onSelectTerminal={(id) => setSelection({ type: "terminal", id })}
+                    zoomToOperatorId={zoomToOperatorId}
+                    onSelectOperator={(id) => setSelection({ type: "operator", id })}
                     onSelectProposal={(id) => setSelectedProposalId(id)}
                     onClearSelection={handleClearSelection}
                     hasActiveFilter={selection?.type === "port" || selection?.type === "cluster"}

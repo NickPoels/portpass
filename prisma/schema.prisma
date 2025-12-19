@@ -29,8 +29,8 @@ model Port {
   clusterId   String
   cluster     Cluster    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
   description String?
-  terminals   Terminal[]
-  terminalProposals TerminalProposal[]
+  terminalOperators TerminalOperator[]
+  operatorProposals TerminalOperatorProposal[]
 
   // Location Fields
   latitude    Float?
@@ -56,29 +56,73 @@ model Port {
   lastDeepResearchReport  String?
 }
 
-model Terminal {
-  id                      String    @id
-  name                    String
-  portId                  String
-  port                    Port      @relation(fields: [portId], references: [id], onDelete: Cascade)
-  latitude                Float
-  longitude               Float
-  cargoTypes              String // Stored as JSON string
-  capacity                String?
-  notes                   String?
-
-  // Deep Research Fields
-  operatorGroup           String?
+model TerminalOperator {
+  id              String    @id @default(uuid())
+  name            String    // e.g., "PSA Singapore", "BASF Terminal", "Rotterdam Container Terminal"
+  portId          String
+  port            Port      @relation(fields: [portId], references: [id], onDelete: Cascade)
   
+  // Core Fields
+  capacity        String?   // e.g., "5M TEU", "10M tons"
+  cargoTypes      String    // Stored as JSON string array: ["Container", "Dry Bulk", ...]
+  
+  // New Fields
+  operatorType    String    // "commercial" | "captive"
+  parentCompanies String?   // Stored as JSON string array: ["PSA International", "Temasek"] or null
+  strategicNotes  String?
+  
+  // Primary Location (for map centering)
+  latitude        Float?
+  longitude       Float?
+  
+  // Location Data (for map visualization - multiple terminal locations)
+  locations       String?   // Stored as JSON string array: [{name: "Terminal 1", latitude: 51.5, longitude: 4.0}, ...]
+  
+  // Deep Research Fields
   lastDeepResearchAt      DateTime?
   lastDeepResearchSummary String?
   lastDeepResearchReport  String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([portId])
+  @@index([operatorType])
+}
+
+model TerminalOperatorProposal {
+  id            String   @id @default(uuid())
+  portId        String
+  port          Port      @relation(fields: [portId], references: [id], onDelete: Cascade)
+  name          String
+  operatorType  String?  // "commercial" | "captive"
+  parentCompanies String? // Stored as JSON string array
+  capacity      String?
+  cargoTypes    String?  // Stored as JSON string array
+  latitude      Float?
+  longitude     Float?
+  locations     String?  // Stored as JSON string array
+  status        String   // "pending" | "approved" | "rejected"
+  createdAt     DateTime @default(now())
+  approvedAt    DateTime?
+
+  @@index([portId, status])
+  @@index([status])
+}
+
+model ParentCompany {
+  id            String   @id @default(uuid())
+  name          String   @unique // e.g., "PSA International", "DP World", "BASF"
+  description   String?
+  website       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model ResearchJob {
   id            String   @id @default(uuid())
-  type          String   // "port" | "terminal"
-  entityId      String   // port.id or terminal.id
+  type          String   // "port" | "terminal_operator"
+  entityId      String   // port.id or terminalOperator.id
   clusterId     String?  // For tracking pipeline context
   status        String   // "pending" | "running" | "completed" | "failed" | "cancelled"
   progress      Int      @default(0)
@@ -91,19 +135,4 @@ model ResearchJob {
   @@index([status, type])
   @@index([clusterId])
   @@index([lastHeartbeat])
-}
-
-model TerminalProposal {
-  id            String   @id @default(uuid())
-  portId        String
-  port          Port      @relation(fields: [portId], references: [id], onDelete: Cascade)
-  name          String
-  latitude      Float?
-  longitude     Float?
-  status        String   // "pending" | "approved" | "rejected"
-  createdAt     DateTime @default(now())
-  approvedAt    DateTime?
-
-  @@index([portId, status])
-  @@index([status])
 }

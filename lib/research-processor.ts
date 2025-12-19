@@ -338,7 +338,7 @@ async function processPortResearchJob(jobId: string, context?: ProcessingContext
 }
 
 /**
- * Process a terminal research job
+ * Process a terminal research job (deprecated - use processTerminalOperatorResearchJob)
  */
 async function processTerminalResearchJob(jobId: string, context?: ProcessingContext): Promise<void> {
   const job = await prisma.researchJob.findUnique({
@@ -556,7 +556,7 @@ async function processTerminalResearchJob(jobId: string, context?: ProcessingCon
         }
       }
 
-      if (approvedFields.length > 0) {
+        if (approvedFields.length > 0) {
         // Apply the updates
         const applyUrl = `${baseUrl}/api/terminals/${terminal.id}/deep-research/apply`;
         const applyResponse = await fetch(applyUrl, {
@@ -570,6 +570,266 @@ async function processTerminalResearchJob(jobId: string, context?: ProcessingCon
 
         if (!applyResponse.ok) {
           console.warn(`Failed to auto-apply terminal updates: ${applyResponse.statusText}`);
+        }
+        
+        console.log(`Job ${jobId} applied ${approvedFields.length} high-confidence updates`);
+        context?.onProgress?.(jobId, 100, `Research complete. Applied ${approvedFields.length} high-confidence updates.`);
+      }
+    }
+    
+    // Job status is already set to 'completed' when preview event was received
+    // If we reach here without a preview event, the job may have failed or timed out
+
+  } catch (error: any) {
+    console.error(`Job ${jobId} failed:`, error);
+    await prisma.researchJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'failed',
+        error: error.message || String(error),
+        completedAt: new Date()
+      }
+    });
+    throw error;
+  } finally {
+    // Always clear heartbeat interval
+    clearInterval(heartbeatInterval);
+  }
+}
+
+/**
+ * Process a terminal operator research job
+ */
+async function processTerminalOperatorResearchJob(jobId: string, context?: ProcessingContext): Promise<void> {
+  const job = await prisma.researchJob.findUnique({
+    where: { id: jobId }
+  });
+
+  if (!job) {
+    console.error(`Job ${jobId} not found`);
+    return;
+  }
+
+  if (job.status !== 'pending' && job.status !== 'running') {
+    console.log(`Job ${jobId} is not pending or running (status: ${job.status}), skipping`);
+    return;
+  }
+
+  await prisma.researchJob.update({
+    where: { id: jobId },
+    data: { 
+      status: 'running',
+      startedAt: new Date(),
+      progress: 0,
+      lastHeartbeat: new Date()
+    }
+  });
+
+  // Start heartbeat interval - update every 30 seconds
+  const heartbeatInterval = setInterval(async () => {
+    await prisma.researchJob.update({
+      where: { id: jobId },
+      data: { lastHeartbeat: new Date() }
+    }).catch(() => {}); // Fail silently to not block processing
+  }, 30000); // 30 seconds
+
+  try {
+    console.log(`Starting terminal operator research job ${jobId} for operator ${job.entityId}`);
+    context?.onProgress?.(jobId, 10, 'Starting operator research...');
+
+    const operator = await prisma.terminalOperator.findUnique({
+      where: { id: job.entityId },
+      include: { port: true }
+    });
+
+    if (!operator) {
+      throw new Error(`Terminal operator ${job.entityId} not found`);
+    }
+
+    // Call operator deep-research endpoint in background mode
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                    'http://localhost:3000';
+    const researchUrl = `${baseUrl}/api/terminal-operators/${operator.id}/deep-research?background=true`;
+    
+    console.log(`Calling research endpoint: ${researchUrl}`);
+    const response = await fetch(researchUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Background-Mode': 'true'
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      console.error(`Research failed for job ${jobId}: ${response.status} ${errorText}`);
+      throw new Error(`Research failed: ${response.status} ${errorText}`);
+    }
+    
+    console.log(`Research endpoint responded for job ${jobId}, reading stream...`);
+
+    // For operator research, we'll auto-apply high-confidence updates
+    // Read the stream to get proposals and progress updates
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let fieldProposals: any[] = [];
+    let dataToUpdate: any = {};
+    let buffer = '';
+    let lastDataReceivedTime = Date.now();
+    const STREAM_READ_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes max per read
+    const STREAM_TOTAL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max total
+    const streamStartTime = Date.now();
+
+    if (reader) {
+      try {
+        while (true) {
+          const readStartTime = Date.now();
+          
+          // Check for total timeout
+          if (readStartTime - streamStartTime > STREAM_TOTAL_TIMEOUT_MS) {
+            reader.cancel();
+            throw new Error(`Stream reading total timeout: exceeded ${STREAM_TOTAL_TIMEOUT_MS}ms`);
+          }
+          
+          // Race reader.read() against a timeout promise
+          const readPromise = reader.read();
+          const timeoutPromise = new Promise<{ done: boolean; value: Uint8Array | undefined }>((_, reject) => {
+            setTimeout(() => {
+              reader.cancel();
+              reject(new Error(`Stream read timeout: no data received for ${STREAM_READ_TIMEOUT_MS}ms`));
+            }, STREAM_READ_TIMEOUT_MS);
+          });
+          
+          let readResult: { done: boolean; value: Uint8Array | undefined };
+          try {
+            readResult = await Promise.race([readPromise, timeoutPromise]);
+          } catch (timeoutError) {
+            throw timeoutError;
+          }
+          
+          const { done, value } = readResult;
+          lastDataReceivedTime = Date.now();
+          
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          
+          // SSE format: event blocks separated by \n\n
+          // Each block: event: <type>\ndata: <json>\n\n
+          const eventBlocks = buffer.split('\n\n');
+          buffer = eventBlocks.pop() || ''; // Keep incomplete block in buffer
+
+          for (const eventBlock of eventBlocks) {
+            if (!eventBlock.trim()) continue;
+            
+            const lines = eventBlock.split('\n');
+            let eventType = '';
+            let eventData = '';
+            
+            for (const line of lines) {
+              if (line.startsWith('event: ')) {
+                eventType = line.substring(7).trim();
+              } else if (line.startsWith('data: ')) {
+                eventData = line.substring(6).trim();
+              }
+            }
+            
+            if (eventData) {
+              try {
+                const data = JSON.parse(eventData);
+                
+                // Handle status events - update progress in database
+                if (eventType === 'status' && data.progress !== undefined) {
+                  const progress = Math.max(0, Math.min(100, data.progress || 0));
+                  
+                  // Update job progress in database
+                  await prisma.researchJob.update({
+                    where: { id: jobId },
+                    data: { progress }
+                  }).catch(err => {
+                    console.error(`Failed to update progress for job ${jobId}:`, err);
+                  });
+                  
+                  console.log(`Job ${jobId} progress: ${progress}% - ${data.message || 'Processing...'}`);
+                  context?.onProgress?.(jobId, progress, data.message || 'Processing...');
+                }
+                
+                // Handle preview event - contains final results
+                if (eventType === 'preview') {
+                  fieldProposals = data.field_proposals || [];
+                  dataToUpdate = data.data_to_update || {};
+                  console.log(`Job ${jobId} received preview event with ${fieldProposals.length} proposals`);
+                  
+                  // MARK JOB COMPLETE IMMEDIATELY - don't wait for stream to close
+                  await prisma.researchJob.update({
+                    where: { id: jobId },
+                    data: {
+                      status: 'completed',
+                      progress: 100,
+                      completedAt: new Date()
+                    }
+                  }).catch(err => {
+                    console.error(`Failed to mark job ${jobId} as completed:`, err);
+                  });
+                  
+                  console.log(`Job ${jobId} marked as completed (preview event received)`);
+                  
+                  // Continue reading stream in background for cleanup
+                  // Stream will close naturally or timeout
+                }
+                
+                // Handle error events
+                if (eventType === 'error') {
+                  console.error(`Job ${jobId} received error event:`, data);
+                  throw new Error(data.message || 'Research error occurred');
+                }
+              } catch (e) {
+                // Ignore parse errors for individual events, but log them
+                if (e instanceof Error && !e.message.includes('JSON')) {
+                  console.error(`Error processing event in job ${jobId}:`, e);
+                }
+              }
+            }
+          }
+        }
+      } catch (streamError) {
+        // Ensure reader is cancelled on error
+        try {
+          reader.cancel();
+        } catch (cancelError) {
+          // Ignore cancel errors
+        }
+        throw streamError;
+      }
+    }
+    
+    console.log(`Job ${jobId} stream reading complete`);
+
+    // Auto-apply high-confidence updates (>0.8)
+    // Only if we have proposals (preview event was received)
+    if (fieldProposals.length > 0) {
+      const approvedFields: string[] = [];
+      for (const proposal of fieldProposals) {
+        if (proposal.confidence > 0.8 && proposal.shouldUpdate) {
+          approvedFields.push(proposal.field);
+        }
+      }
+
+      if (approvedFields.length > 0) {
+        // Apply the updates
+        const applyUrl = `${baseUrl}/api/terminal-operators/${operator.id}/deep-research/apply`;
+        const applyResponse = await fetch(applyUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data_to_update: dataToUpdate,
+            approved_fields: approvedFields
+          })
+        });
+
+        if (!applyResponse.ok) {
+          console.warn(`Failed to auto-apply operator updates: ${applyResponse.statusText}`);
         }
         
         console.log(`Job ${jobId} applied ${approvedFields.length} high-confidence updates`);
@@ -648,6 +908,8 @@ async function processNextJob(context?: ProcessingContext): Promise<void> {
       await processPortResearchJob(jobId, context);
     } else if (job.type === 'terminal') {
       await processTerminalResearchJob(jobId, context);
+    } else if (job.type === 'terminal_operator') {
+      await processTerminalOperatorResearchJob(jobId, context);
     } else {
       // Unknown job type, mark as failed
       await prisma.researchJob.update({
@@ -818,7 +1080,7 @@ export async function queuePortResearchJobs(portIds: string[], clusterId?: strin
 }
 
 /**
- * Queue a single terminal research job
+ * Queue a single terminal research job (deprecated)
  */
 export async function queueTerminalResearchJob(terminalId: string, clusterId?: string): Promise<string> {
   const job = await prisma.researchJob.create({
@@ -834,7 +1096,7 @@ export async function queueTerminalResearchJob(terminalId: string, clusterId?: s
 }
 
 /**
- * Queue terminal research jobs for approved terminals
+ * Queue terminal research jobs for approved terminals (deprecated)
  */
 export async function queueTerminalResearchJobs(terminalIds: string[], clusterId?: string): Promise<string[]> {
   const jobIds: string[] = [];
@@ -844,6 +1106,44 @@ export async function queueTerminalResearchJobs(terminalIds: string[], clusterId
       data: {
         type: 'terminal',
         entityId: terminalId,
+        clusterId,
+        status: 'pending',
+        progress: 0
+      }
+    });
+    jobIds.push(job.id);
+  }
+
+  return jobIds;
+}
+
+/**
+ * Queue a single terminal operator research job
+ */
+export async function queueTerminalOperatorResearchJob(operatorId: string, clusterId?: string): Promise<string> {
+  const job = await prisma.researchJob.create({
+    data: {
+      type: 'terminal_operator',
+      entityId: operatorId,
+      clusterId,
+      status: 'pending',
+      progress: 0
+    }
+  });
+  return job.id;
+}
+
+/**
+ * Queue terminal operator research jobs for approved operators
+ */
+export async function queueTerminalOperatorResearchJobs(operatorIds: string[], clusterId?: string): Promise<string[]> {
+  const jobIds: string[] = [];
+
+  for (const operatorId of operatorIds) {
+    const job = await prisma.researchJob.create({
+      data: {
+        type: 'terminal_operator',
+        entityId: operatorId,
         clusterId,
         status: 'pending',
         progress: 0

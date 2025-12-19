@@ -1,4 +1,4 @@
-import { ISPSRiskLevel, ISPSEnforcementStrength, CargoType } from './types';
+import { ISPSRiskLevel, ISPSEnforcementStrength, CargoType, OperatorType } from './types';
 
 export interface ValidationResult {
     isValid: boolean;
@@ -308,7 +308,7 @@ export function validateCoordinates(lat: number | null | undefined, lon: number 
 }
 
 /**
- * Validate operator group name
+ * Validate operator group name (deprecated - use validateParentCompanies instead)
  */
 export function validateOperatorGroup(name: string | null | undefined): ValidationResult {
     const errors: string[] = [];
@@ -343,6 +343,100 @@ export function validateOperatorGroup(name: string | null | undefined): Validati
         errors,
         warnings,
         correctedValue: errors.length === 0 ? trimmed : undefined
+    };
+}
+
+/**
+ * Validate operator type
+ */
+export function validateOperatorType(type: string | null | undefined): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const suggestions: string[] = [];
+    
+    if (!type) {
+        return { isValid: false, errors: ['Operator type is required'], warnings: [] };
+    }
+    
+    const validTypes: OperatorType[] = ['commercial', 'captive'];
+    const typeNormalized = type.trim().toLowerCase();
+    
+    // Exact match
+    if (validTypes.includes(typeNormalized as OperatorType)) {
+        return { isValid: true, errors: [], warnings: [], correctedValue: typeNormalized };
+    }
+    
+    // Try fuzzy matching
+    if (typeNormalized.includes('commercial') || typeNormalized.includes('third') || typeNormalized.includes('public')) {
+        suggestions.push('commercial');
+    } else if (typeNormalized.includes('captive') || typeNormalized.includes('private') || typeNormalized.includes('own')) {
+        suggestions.push('captive');
+    }
+    
+    if (suggestions.length > 0) {
+        errors.push(`Invalid operator type: "${type}". Did you mean "${suggestions[0]}"?`);
+        return { isValid: false, errors, warnings, suggestions, correctedValue: suggestions[0] as OperatorType };
+    }
+    
+    errors.push(`Invalid operator type: "${type}". Must be one of: ${validTypes.join(', ')}`);
+    return { isValid: false, errors, warnings, suggestions: validTypes };
+}
+
+/**
+ * Validate parent companies array
+ */
+export function validateParentCompanies(companies: string[] | null | undefined): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    if (!companies || companies.length === 0) {
+        return { isValid: true, errors: [], warnings: [], correctedValue: null };
+    }
+    
+    if (!Array.isArray(companies)) {
+        errors.push('Parent companies must be an array');
+        return { isValid: false, errors, warnings: [] };
+    }
+    
+    // Deduplicate and clean
+    const cleaned: string[] = [];
+    const seen = new Set<string>();
+    
+    for (const company of companies) {
+        if (!company || typeof company !== 'string') {
+            warnings.push(`Invalid parent company entry: ${JSON.stringify(company)}`);
+            continue;
+        }
+        
+        const trimmed = company.trim();
+        if (trimmed === '') {
+            continue;
+        }
+        
+        const normalized = trimmed.toLowerCase();
+        if (!seen.has(normalized)) {
+            seen.add(normalized);
+            cleaned.push(trimmed);
+        } else {
+            warnings.push(`Duplicate parent company removed: "${trimmed}"`);
+        }
+    }
+    
+    // Validate each company name
+    for (const company of cleaned) {
+        if (company.length < 2) {
+            warnings.push(`Parent company name is very short: "${company}"`);
+        }
+        if (company.length > 200) {
+            warnings.push(`Parent company name is very long: "${company}"`);
+        }
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        correctedValue: cleaned.length > 0 ? cleaned : null
     };
 }
 

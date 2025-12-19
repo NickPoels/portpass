@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Cluster, Port, Terminal } from "@/lib/types";
+import { Cluster, Port, TerminalOperator, ParentCompany } from "@/lib/types";
 
 // --- CLUSTERS ---
 
@@ -100,53 +100,107 @@ export async function deletePort(id: string) {
     revalidatePath("/");
 }
 
-// --- TERMINALS ---
+// --- TERMINAL OPERATORS ---
 
-export async function createTerminal(data: Terminal) {
+export async function createTerminalOperator(data: TerminalOperator) {
     const cargoTypesStr = JSON.stringify(data.cargoTypes);
+    const parentCompaniesStr = data.parentCompanies ? JSON.stringify(data.parentCompanies) : null;
+    const locationsStr = data.locations ? JSON.stringify(data.locations) : null;
 
-    await prisma.terminal.create({
+    await prisma.terminalOperator.create({
         data: {
             id: data.id,
             name: data.name,
             portId: data.portId,
+            capacity: data.capacity,
+            cargoTypes: cargoTypesStr,
+            operatorType: data.operatorType,
+            parentCompanies: parentCompaniesStr,
+            strategicNotes: data.strategicNotes,
             latitude: data.latitude,
             longitude: data.longitude,
-            cargoTypes: cargoTypesStr,
-            capacity: data.capacity,
-            notes: data.notes,
+            locations: locationsStr,
             // Deep Research
-            operatorGroup: data.operatorGroup,
             lastDeepResearchAt: data.lastDeepResearchAt ? new Date(data.lastDeepResearchAt) : null,
-            lastDeepResearchSummary: data.lastDeepResearchSummary
+            lastDeepResearchSummary: data.lastDeepResearchSummary,
+            lastDeepResearchReport: data.lastDeepResearchReport
         }
     });
     revalidatePath("/");
 }
 
-export async function updateTerminal(data: Terminal) {
+export async function updateTerminalOperator(data: TerminalOperator) {
     const cargoTypesStr = JSON.stringify(data.cargoTypes);
+    const parentCompaniesStr = data.parentCompanies ? JSON.stringify(data.parentCompanies) : null;
+    const locationsStr = data.locations ? JSON.stringify(data.locations) : null;
 
-    await prisma.terminal.update({
+    await prisma.terminalOperator.update({
         where: { id: data.id },
         data: {
             name: data.name,
             portId: data.portId,
+            capacity: data.capacity,
+            cargoTypes: cargoTypesStr,
+            operatorType: data.operatorType,
+            parentCompanies: parentCompaniesStr,
+            strategicNotes: data.strategicNotes,
             latitude: data.latitude,
             longitude: data.longitude,
-            cargoTypes: cargoTypesStr,
-            capacity: data.capacity,
-            notes: data.notes,
+            locations: locationsStr,
             // Deep Research
-            operatorGroup: data.operatorGroup,
             lastDeepResearchAt: data.lastDeepResearchAt ? new Date(data.lastDeepResearchAt) : null,
-            lastDeepResearchSummary: data.lastDeepResearchSummary
+            lastDeepResearchSummary: data.lastDeepResearchSummary,
+            lastDeepResearchReport: data.lastDeepResearchReport
         }
     });
     revalidatePath("/");
 }
 
-export async function deleteTerminal(id: string) {
-    await prisma.terminal.delete({ where: { id } });
+export async function deleteTerminalOperator(id: string) {
+    await prisma.terminalOperator.delete({ where: { id } });
     revalidatePath("/");
+}
+
+// --- PARENT COMPANIES ---
+
+export async function createParentCompany(data: ParentCompany) {
+    await prisma.parentCompany.create({
+        data: {
+            id: data.id,
+            name: data.name,
+            description: data.description,
+            website: data.website
+        }
+    });
+    revalidatePath("/");
+}
+
+export async function updateParentCompany(data: ParentCompany) {
+    await prisma.parentCompany.update({
+        where: { id: data.id },
+        data: {
+            name: data.name,
+            description: data.description,
+            website: data.website
+        }
+    });
+    revalidatePath("/");
+}
+
+export async function deleteParentCompany(id: string) {
+    await prisma.parentCompany.delete({ where: { id } });
+    revalidatePath("/");
+}
+
+export async function getParentCompanies(): Promise<ParentCompany[]> {
+    const companies = await prisma.parentCompany.findMany({
+        orderBy: { name: 'asc' }
+    });
+    
+    return companies.map(c => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        website: c.website
+    }));
 }

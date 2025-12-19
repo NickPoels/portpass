@@ -1,6 +1,6 @@
 import Dashboard from "@/components/Dashboard";
 import { prisma } from "@/lib/prisma";
-import { Cluster, Port, Terminal, ClusterId, PriorityTier, ISPSRiskLevel, ISPSEnforcementStrength } from "@/lib/types";
+import { Cluster, Port, TerminalOperator, ClusterId, PriorityTier, ISPSRiskLevel, ISPSEnforcementStrength } from "@/lib/types";
 
 // Helper to safely parse JSON array
 const safeParseArray = (json: string | null | undefined): string[] => {
@@ -16,11 +16,11 @@ const safeParseArray = (json: string | null | undefined): string[] => {
 
 // Helper to ensure proper typing when fetching from DB
 async function getData() {
-  let dbClusters, dbPorts, dbTerminals;
+  let dbClusters, dbPorts, dbOperators;
   try {
     dbClusters = await prisma.cluster.findMany();
     dbPorts = await prisma.port.findMany();
-    dbTerminals = await prisma.terminal.findMany();
+    dbOperators = await prisma.terminalOperator.findMany();
   } catch (error: unknown) {
     throw error;
   }
@@ -57,32 +57,34 @@ async function getData() {
     lastDeepResearchReport: p.lastDeepResearchReport || undefined,
   }));
 
-  const terminals: Terminal[] = dbTerminals.map(t => ({
-    id: t.id,
-    name: t.name,
-    portId: t.portId,
-    latitude: t.latitude,
-    longitude: t.longitude,
-    cargoTypes: safeParseArray(t.cargoTypes), // Use safe parser
-    capacity: t.capacity || "Unknown",
-    notes: t.notes || undefined,
-    operatorGroup: t.operatorGroup || undefined,
-    lastDeepResearchAt: t.lastDeepResearchAt ? t.lastDeepResearchAt.toISOString() : null,
-    lastDeepResearchSummary: t.lastDeepResearchSummary || undefined,
-    lastDeepResearchReport: t.lastDeepResearchReport || undefined,
+  const operators: TerminalOperator[] = dbOperators.map(o => ({
+    id: o.id,
+    name: o.name,
+    portId: o.portId,
+    capacity: o.capacity || null,
+    cargoTypes: safeParseArray(o.cargoTypes),
+    operatorType: (o.operatorType === 'commercial' || o.operatorType === 'captive') ? o.operatorType : 'commercial',
+    parentCompanies: o.parentCompanies ? safeParseArray(o.parentCompanies) : null,
+    strategicNotes: o.strategicNotes || null,
+    latitude: o.latitude || null,
+    longitude: o.longitude || null,
+    locations: o.locations ? JSON.parse(o.locations) : null,
+    lastDeepResearchAt: o.lastDeepResearchAt ? o.lastDeepResearchAt.toISOString() : null,
+    lastDeepResearchSummary: o.lastDeepResearchSummary || null,
+    lastDeepResearchReport: o.lastDeepResearchReport || null,
   }));
 
-  return { clusters, ports, terminals };
+  return { clusters, ports, operators };
 }
 
 export default async function Home() {
   try {
-    const { clusters, ports, terminals } = await getData();
+    const { clusters, ports, operators } = await getData();
 
     return (
       <main className="h-screen w-screen overflow-hidden">
         <Dashboard
-          initialTerminals={terminals}
+          initialOperators={operators}
           ports={ports}
           clusters={clusters}
         />

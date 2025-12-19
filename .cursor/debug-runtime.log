@@ -352,3 +352,48 @@
 [2025-12-19T14:21:12.122Z] [DEBUG] Status: 200, StatusText: OK, Duration: 49214ms
 [2025-12-19T14:21:12.197Z] [DEBUG] Extracted content length: 10923 characters
 [2025-12-19T14:21:12.197Z] [DEBUG] executeResearchQuery success - result length: 10923
+[2025-12-19T21:25:57.122Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T21:25:57.123Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T21:25:57.124Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T21:25:57.124Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T21:25:57.124Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T21:25:57.125Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T21:25:57.125Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T21:25:57.126Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T21:25:57.126Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T21:25:57.127Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T21:25:57.127Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T21:25:57.127Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T21:25:57.128Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T21:25:57.128Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T21:25:57.128Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T21:26:20.466Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T21:26:20.468Z] [DEBUG] Status: 200, StatusText: OK, Duration: 23338ms
+[2025-12-19T21:26:20.517Z] [DEBUG] Extracted content length: 8749 characters
+[2025-12-19T21:26:20.517Z] [DEBUG] executeResearchQuery success - result length: 8749
+[2025-12-19T21:26:42.810Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T21:26:42.811Z] [DEBUG] Status: 200, StatusText: OK, Duration: 45686ms
+[2025-12-19T21:26:42.815Z] [DEBUG] Extracted content length: 11024 characters
+[2025-12-19T21:26:42.816Z] [DEBUG] executeResearchQuery success - result length: 11024
+[2025-12-19T21:26:43.441Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T21:26:43.442Z] [DEBUG] Status: 200, StatusText: OK, Duration: 46315ms
+[2025-12-19T21:26:43.445Z] [DEBUG] Extracted content length: 14231 characters
+[2025-12-19T21:26:43.446Z] [DEBUG] executeResearchQuery success - result length: 14231
+[2025-12-19T21:29:10.915Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T21:29:10.916Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T21:29:10.917Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T21:29:10.918Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T21:29:10.918Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T21:29:10.918Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T21:29:10.919Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T21:29:10.919Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T21:29:10.919Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T21:29:10.919Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T21:29:28.443Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T21:29:28.444Z] [DEBUG] Status: 200, StatusText: OK, Duration: 17526ms
+[2025-12-19T21:29:28.447Z] [DEBUG] Extracted content length: 3687 characters
+[2025-12-19T21:29:28.447Z] [DEBUG] executeResearchQuery success - result length: 3687
+[2025-12-19T21:29:30.147Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T21:29:30.147Z] [DEBUG] Status: 200, StatusText: OK, Duration: 19228ms
+[2025-12-19T21:29:30.150Z] [DEBUG] Extracted content length: 7766 characters
+[2025-12-19T21:29:30.150Z] [DEBUG] executeResearchQuery success - result length: 7766
