@@ -16,10 +16,7 @@ export async function createCluster(data: Cluster) {
             countries: countriesStr,
             priorityTier: data.priorityTier,
             description: data.description,
-            strategicNotes: data.strategicNotes,
-            clusterWideIdentitySystem: data.clusterWideIdentitySystem,
-            governanceCoordination: data.governanceCoordination,
-            networkEffectIndicators: data.networkEffectIndicators
+            strategicNotes: data.strategicNotes
         }
     });
     revalidatePath("/");
@@ -35,10 +32,7 @@ export async function updateCluster(data: Cluster) {
             countries: countriesStr,
             priorityTier: data.priorityTier,
             description: data.description,
-            strategicNotes: data.strategicNotes,
-            clusterWideIdentitySystem: data.clusterWideIdentitySystem,
-            governanceCoordination: data.governanceCoordination,
-            networkEffectIndicators: data.networkEffectIndicators
+            strategicNotes: data.strategicNotes
         }
     });
     revalidatePath("/");
@@ -61,17 +55,12 @@ export async function createPort(data: Port) {
             description: data.description,
             // Governance
             portAuthority: data.portAuthority,
-            customsAuthority: data.customsAuthority,
             // Identity
-            portWideIdentitySystem: data.portWideIdentitySystem,
             identityCompetitors: data.identityCompetitors ? JSON.stringify(data.identityCompetitors) : null,
             identityAdoptionRate: data.identityAdoptionRate,
             // ISPS
             portLevelISPSRisk: data.portLevelISPSRisk,
             ispsEnforcementStrength: data.ispsEnforcementStrength,
-            // Systems
-            dominantTOSSystems: data.dominantTOSSystems ? JSON.stringify(data.dominantTOSSystems) : null,
-            dominantACSSystems: data.dominantACSSystems ? JSON.stringify(data.dominantACSSystems) : null,
             // Strategic
             strategicNotes: data.strategicNotes,
         }
@@ -89,17 +78,12 @@ export async function updatePort(data: Port) {
             description: data.description,
             // Governance
             portAuthority: data.portAuthority,
-            customsAuthority: data.customsAuthority,
             // Identity
-            portWideIdentitySystem: data.portWideIdentitySystem,
             identityCompetitors: data.identityCompetitors ? JSON.stringify(data.identityCompetitors) : null,
             identityAdoptionRate: data.identityAdoptionRate,
             // ISPS
             portLevelISPSRisk: data.portLevelISPSRisk,
             ispsEnforcementStrength: data.ispsEnforcementStrength,
-            // Systems
-            dominantTOSSystems: data.dominantTOSSystems ? JSON.stringify(data.dominantTOSSystems) : null,
-            dominantACSSystems: data.dominantACSSystems ? JSON.stringify(data.dominantACSSystems) : null,
             // Strategic
             strategicNotes: data.strategicNotes,
             // Research tracking
@@ -130,11 +114,9 @@ export async function createTerminal(data: Terminal) {
             longitude: data.longitude,
             cargoTypes: cargoTypesStr,
             capacity: data.capacity,
-            ispsRiskLevel: data.ispsRiskLevel,
             notes: data.notes,
             // Deep Research
             operatorGroup: data.operatorGroup,
-            ownership: data.ownership,
             lastDeepResearchAt: data.lastDeepResearchAt ? new Date(data.lastDeepResearchAt) : null,
             lastDeepResearchSummary: data.lastDeepResearchSummary
         }
@@ -154,11 +136,9 @@ export async function updateTerminal(data: Terminal) {
             longitude: data.longitude,
             cargoTypes: cargoTypesStr,
             capacity: data.capacity,
-            ispsRiskLevel: data.ispsRiskLevel,
             notes: data.notes,
             // Deep Research
             operatorGroup: data.operatorGroup,
-            ownership: data.ownership,
             lastDeepResearchAt: data.lastDeepResearchAt ? new Date(data.lastDeepResearchAt) : null,
             lastDeepResearchSummary: data.lastDeepResearchSummary
         }

@@ -21,7 +21,6 @@ async function main() {
     console.log(`Coordinates: ${term.latitude}, ${term.longitude}`);
     console.log(`Cargo Types: ${term.cargoTypes}`);
     console.log(`Capacity: ${term.capacity}`);
-    console.log(`ISPS Level: ${term.ispsRiskLevel}`);
     console.log(`Research Summary: ${term.lastDeepResearchSummary}`);
 }
 

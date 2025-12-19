@@ -1,144 +1,100 @@
 [
-    {
-        "id": "ANTWERP_ROTTERDAM_NSP",
-        "name": "Antwerp–Rotterdam–North Sea Port",
-        "countries": [
-            "Belgium",
-            "Netherlands"
-        ],
-        "priorityTier": 1,
-        "description": "Supra-cluster of Antwerp, Rotterdam, North Sea Port, Zeebrugge; high ISPS pressure, drug crime, contractor overlap."
-    },
-    {
-        "id": "SPANISH_TRIAD",
-        "name": "Spanish Triad (Algeciras–Valencia–Barcelona)",
-        "countries": [
-            "Spain"
-        ],
-        "priorityTier": 1,
-        "description": "Major Spanish container and RoRo hubs with shared ferries, customs and smuggling pressure."
-    },
-    {
-        "id": "ITALIAN_LIGURIAN",
-        "name": "Italian Ligurian–Tuscany Cluster",
-        "countries": [
-            "Italy"
-        ],
-        "priorityTier": 1,
-        "description": "Genoa, La Spezia, Livorno, Piombino; mix of container, RoRo, bulk; mandate-driven environment."
-    },
-    {
-        "id": "PORTUGAL_ENERGY",
-        "name": "Portugal Energy & Container Corridor",
-        "countries": [
-            "Portugal"
-        ],
-        "priorityTier": 2,
-        "description": "Sines, Lisbon, Setúbal; strong energy/strategic focus."
-    },
-    {
-        "id": "HAROPA",
-        "name": "HAROPA (Le Havre–Rouen–Paris)",
-        "countries": [
-            "France"
-        ],
-        "priorityTier": 2,
-        "description": "Centralized French river–sea corridor; strong customs and state control."
-    },
-    {
-        "id": "GERMANY_NORTH",
-        "name": "Germany North (Hamburg–Bremerhaven–Wilhelmshaven)",
-        "countries": [
-            "Germany"
-        ],
-        "priorityTier": 2,
-        "description": "Major German container and RoRo hubs; moves later but locks hard."
-    },
-    {
-        "id": "GREECE",
-        "name": "Greece (Piraeus–Thessaloniki–Crete)",
-        "countries": [
-            "Greece"
-        ],
-        "priorityTier": 2,
-        "description": "High geopolitical sensitivity; COSCO presence and migration/smuggling routes."
-    },
-    {
-        "id": "EASTERN_SECURITY",
-        "name": "Eastern Security Corridor",
-        "countries": [
-            "Poland",
-            "Lithuania",
-            "Latvia",
-            "Estonia",
-            "Romania",
-            "Bulgaria"
-        ],
-        "priorityTier": 3,
-        "description": "Gdansk/Gdynia, Klaipeda, Riga, Tallinn, Constanta, Varna/Burgas; EU funding leverage and ISPS gaps."
-    },
-    {
-        "id": "UK_EAST_CONTAINER",
-        "name": "UK East Coast Container Spine",
-        "countries": [
-            "United Kingdom"
-        ],
-        "priorityTier": 2,
-        "description": "Felixstowe, London Gateway, Tilbury; major UK container gateway with strong customs and Border Force presence."
-    },
-    {
-        "id": "UK_HUMBER_ENERGY",
-        "name": "Humber Energy & Bulk Cluster",
-        "countries": [
-            "United Kingdom"
-        ],
-        "priorityTier": 2,
-        "description": "Immingham, Hull; UK's largest port by tonnage; critical energy and bulk hub."
-    },
-    {
-        "id": "UK_SOLENT_ROPAX",
-        "name": "Solent & Channel Gateway",
-        "countries": [
-            "United Kingdom"
-        ],
-        "priorityTier": 2,
-        "description": "Southampton, Portsmouth; major automotive, container, cruise, and ferry hub with strong border control relevance."
-    },
-    {
-        "id": "UK_IRISH_SEA",
-        "name": "UK Irish Sea Cluster",
-        "countries": [
-            "United Kingdom"
-        ],
-        "priorityTier": 3,
-        "description": "Liverpool; key RoRo and Irish Sea trade corridor."
-    },
-    {
-        "id": "NORDIC_SCANDI_TURNTABLE",
-        "name": "Nordic Scandi Turntable (Gothenburg–Aarhus–Öresund)",
-        "countries": [
-            "Sweden",
-            "Denmark"
-        ],
-        "priorityTier": 2,
-        "description": "Gothenburg, Aarhus, Copenhagen/Malmö; largest Nordic ports; key Baltic–North Sea connector."
-    },
-    {
-        "id": "NORDIC_GULF_FINLAND",
-        "name": "Nordic Gulf of Finland Cluster",
-        "countries": [
-            "Finland"
-        ],
-        "priorityTier": 2,
-        "description": "Helsinki, Hamina-Kotka; high ferry and RoRo identity volumes; strategic eastern border hub."
-    },
-    {
-        "id": "NORDIC_NORWAY_ENERGY",
-        "name": "Nordic Norway Energy Cluster",
-        "countries": [
-            "Norway"
-        ],
-        "priorityTier": 3,
-        "description": "Oslo, Stavanger; main Norwegian container gateway and offshore oil & gas logistics hub."
-    }
+  {
+    "id": "NORTH_SEA_CORE",
+    "name": "North Sea Core",
+    "countries": ["Belgium", "Netherlands"],
+    "priorityTier": 1,
+    "description": "Highest identity volume, strongest contractor overlap, maximum ISPS pressure, proven mandate dynamics."
+  },
+  {
+    "id": "IBERIAN_GATEWAY",
+    "name": "Iberian Gateway",
+    "countries": ["Spain", "Portugal"],
+    "priorityTier": 1,
+    "description": "Southern EU gateway, container + RoRo + ferry, strong national port authority leverage, border and smuggling dynamics."
+  },
+  {
+    "id": "ITALIAN_SECURITY",
+    "name": "Italian Security",
+    "countries": ["Italy"],
+    "priorityTier": 2,
+    "description": "Fragmented operators, centralized mandates, strong anti-mafia and security framing."
+  },
+  {
+    "id": "FRENCH_STATE_LED",
+    "name": "French State Led",
+    "countries": ["France"],
+    "priorityTier": 2,
+    "description": "Strong state governance, customs authority dominance, ports treated as national infrastructure."
+  },
+  {
+    "id": "GERMAN_NORTH",
+    "name": "German North",
+    "countries": ["Germany"],
+    "priorityTier": 2,
+    "description": "Federal compliance logic, strong works councils, adoption once consensus is reached."
+  },
+  {
+    "id": "UK_BORDER_RORO",
+    "name": "UK Border RoRo",
+    "countries": ["United Kingdom"],
+    "priorityTier": 2,
+    "description": "Post-Brexit border enforcement, RoRo + container mix, centralized Border Force leverage."
+  },
+  {
+    "id": "NORDIC_BALTIC_GATEWAY",
+    "name": "Nordic Baltic Gateway",
+    "countries": ["Sweden", "Denmark", "Finland"],
+    "priorityTier": 2,
+    "description": "High digital maturity, Baltic gateway role, cross-border trucking and ferry flows."
+  },
+  {
+    "id": "NORDIC_ENERGY_OFFSHORE",
+    "name": "Nordic Energy Offshore",
+    "countries": ["Norway"],
+    "priorityTier": 3,
+    "description": "Energy security, offshore contractor rotation, national-security framing."
+  },
+  {
+    "id": "EASTERN_EU_SECURITY",
+    "name": "Eastern EU Security",
+    "countries": ["Poland", "Lithuania", "Latvia", "Estonia", "Romania", "Bulgaria"],
+    "priorityTier": 3,
+    "description": "EU/NATO security pressure, modernization funding, weak incumbent identity systems."
+  },
+  {
+    "id": "ADRIATIC_EASTMED_GATEWAY",
+    "name": "Adriatic EastMed Gateway",
+    "countries": ["Italy", "Slovenia", "Croatia", "Greece"],
+    "priorityTier": 3,
+    "description": "RoRo + truck-heavy Balkan gateway, fragmented governance but converging customs logic."
+  },
+  {
+    "id": "WESTERN_MED_ENERGY_INDUSTRIAL",
+    "name": "Western Med Energy Industrial",
+    "countries": ["France", "Spain"],
+    "priorityTier": 2,
+    "description": "Petrochemical & LNG concentration, extreme contractor churn, insurance/safety-driven mandates."
+  },
+  {
+    "id": "RHINE_INTERMODAL_SECURITY",
+    "name": "Rhine Intermodal Security",
+    "countries": ["Switzerland", "Germany", "France"],
+    "priorityTier": 3,
+    "description": "Chemical corridor, dangerous goods, cross-border contractor reuse, customs-driven identity needs."
+  },
+  {
+    "id": "EASTERN_MED_LNG_SECURITY",
+    "name": "Eastern Med LNG Security",
+    "countries": ["Greece", "Cyprus"],
+    "priorityTier": 3,
+    "description": "EU energy security, LNG infrastructure, defense relevance."
+  },
+  {
+    "id": "CENTRAL_MED_TRANSSHIPMENT",
+    "name": "Central Med Transshipment",
+    "countries": ["Italy", "Malta"],
+    "priorityTier": 3,
+    "description": "High crew turnover, security scrutiny, lower truck identity volume."
+  }
 ]

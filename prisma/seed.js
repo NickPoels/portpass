@@ -59,7 +59,6 @@ async function main() {
                 longitude: terminal.longitude,
                 cargoTypes: JSON.stringify(terminal.cargoTypes),
                 capacity: terminal.capacity,
-                ispsRiskLevel: terminal.ispsRiskLevel,
             },
         });
     }

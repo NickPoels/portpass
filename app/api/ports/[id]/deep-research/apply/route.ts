@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import OpenAI from 'openai';
+import { geocodePort } from '@/lib/geocoding';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,12 +46,6 @@ export async function PATCH(
         if (approvedFieldsSet.has('portAuthority') && data_to_update.portAuthority !== undefined) {
             updateData.portAuthority = data_to_update.portAuthority;
         }
-        if (approvedFieldsSet.has('customsAuthority') && data_to_update.customsAuthority !== undefined) {
-            updateData.customsAuthority = data_to_update.customsAuthority;
-        }
-        if (approvedFieldsSet.has('portWideIdentitySystem') && data_to_update.portWideIdentitySystem !== undefined) {
-            updateData.portWideIdentitySystem = data_to_update.portWideIdentitySystem;
-        }
         if (approvedFieldsSet.has('identityCompetitors') && data_to_update.identityCompetitors !== undefined) {
             updateData.identityCompetitors = data_to_update.identityCompetitors; // Already JSON string
         }
@@ -62,14 +58,19 @@ export async function PATCH(
         if (approvedFieldsSet.has('ispsEnforcementStrength') && data_to_update.ispsEnforcementStrength !== undefined) {
             updateData.ispsEnforcementStrength = data_to_update.ispsEnforcementStrength;
         }
-        if (approvedFieldsSet.has('dominantTOSSystems') && data_to_update.dominantTOSSystems !== undefined) {
-            updateData.dominantTOSSystems = data_to_update.dominantTOSSystems; // Already JSON string
-        }
-        if (approvedFieldsSet.has('dominantACSSystems') && data_to_update.dominantACSSystems !== undefined) {
-            updateData.dominantACSSystems = data_to_update.dominantACSSystems; // Already JSON string
-        }
         if (approvedFieldsSet.has('strategicNotes') && data_to_update.strategicNotes !== undefined) {
             updateData.strategicNotes = data_to_update.strategicNotes;
+        }
+        if (approvedFieldsSet.has('latitude') && data_to_update.latitude !== undefined) {
+            updateData.latitude = data_to_update.latitude;
+        }
+        if (approvedFieldsSet.has('longitude') && data_to_update.longitude !== undefined) {
+            updateData.longitude = data_to_update.longitude;
+        }
+        // Handle location as a combined field
+        if (approvedFieldsSet.has('location') && data_to_update.latitude !== undefined && data_to_update.longitude !== undefined) {
+            updateData.latitude = data_to_update.latitude;
+            updateData.longitude = data_to_update.longitude;
         }
 
         // Update port with approved fields

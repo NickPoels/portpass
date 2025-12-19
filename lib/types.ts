@@ -39,9 +39,6 @@ export interface Cluster {
 
     // Strategic & Metadata Fields
     strategicNotes?: string | null;
-    clusterWideIdentitySystem?: string | null;
-    governanceCoordination?: string | null;
-    networkEffectIndicators?: string | null;
 }
 
 export interface Port {
@@ -53,20 +50,14 @@ export interface Port {
 
     // Governance Fields
     portAuthority?: string | null;
-    customsAuthority?: string | null;
 
     // Identity System Fields
-    portWideIdentitySystem?: string | null;
     identityCompetitors?: string[]; // Array of competitor names
     identityAdoptionRate?: string | null; // "High", "Medium", "Low", "None", or percentage
 
     // ISPS Risk Fields
     portLevelISPSRisk?: ISPSRiskLevel | null;
     ispsEnforcementStrength?: ISPSEnforcementStrength | null;
-
-    // System Landscape Fields
-    dominantTOSSystems?: string[]; // Array of TOS system names
-    dominantACSSystems?: string[]; // Array of ACS system names
 
     // Strategic Notes
     strategicNotes?: string | null;
@@ -86,13 +77,23 @@ export interface Terminal {
     longitude: number;
     cargoTypes: string[];
     capacity: string;
-    ispsRiskLevel: ISPSRiskLevel;
     notes?: string;
 
     // Deep Research Fields
     operatorGroup?: string | null;
-    ownership?: string | null;
     lastDeepResearchAt?: string | null; // ISO string format
     lastDeepResearchSummary?: string | null;
     lastDeepResearchReport?: string | null;
+}
+
+export interface TerminalProposal {
+    id: string;
+    portId: string;
+    name: string;
+    latitude: number | null;
+    longitude: number | null;
+    address?: string | null;  // Address/location description
+    status: "pending" | "approved" | "rejected";
+    createdAt: string;  // ISO string
+    approvedAt?: string | null;  // ISO string
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Terminal, Cluster, Port, CargoType, ISPSRiskLevel } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { Terminal, Cluster, Port, CargoType } from "@/lib/types";
 import { X, Save, AlertTriangle, Copy, Check, RotateCw, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -16,8 +17,6 @@ const CARGO_OPTIONS: CargoType[] = [
     "Container", "RoRo", "Dry Bulk", "Liquid Bulk", "Break Bulk", "Multipurpose", "Passenger/Ferry"
 ];
 
-const RISK_OPTIONS: ISPSRiskLevel[] = ["Low", "Medium", "High", "Very High"];
-
 interface ProposedChanges {
     [key: string]: { from: any; to: any };
 }
@@ -30,6 +29,7 @@ interface ErrorInfo {
 }
 
 export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, onDelete }: TerminalDetailProps) => {
+    const router = useRouter();
     const [formData, setFormData] = useState<Terminal>(terminal);
     const [isDirty, setIsDirty] = useState(false);
     const [isResearching, setIsResearching] = useState(false);
@@ -41,6 +41,8 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
     const [lastError, setLastError] = useState<ErrorInfo | null>(null);
     const [retryCount, setRetryCount] = useState(0);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [portChangeSuggestion, setPortChangeSuggestion] = useState<{ from: string; to: string; country: string } | null>(null);
     const [dataToUpdate, setDataToUpdate] = useState<any>(null);
     const [activityLog, setActivityLog] = useState<Array<{message: string, step: string, progress: number, timestamp: Date, completed: boolean}>>([]);
@@ -84,171 +86,146 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
             setLastError(null);
         }
         
-        console.log("Deep Research button clicked");
         setIsResearching(true);
-        setResearchStatus("Initializing...");
+        setResearchStatus("Starting research job...");
         setProposedChanges(null);
         setShowPreview(false);
         setFullReport(null);
         setPortChangeSuggestion(null);
 
-        // Create new AbortController
-        abortControllerRef.current = new AbortController();
-        const abortController = abortControllerRef.current;
+        // Clear any existing polling
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
 
         try {
-            console.log(`Fetching from /api/terminals/${terminal.id}/deep-research...`);
-            const response = await fetch(`/api/terminals/${terminal.id}/deep-research`, {
+            // Start a background research job
+            const startResponse = await fetch(`/api/terminals/${terminal.id}/deep-research/start`, {
                 method: "POST",
-                signal: abortController.signal,
             });
-            console.log("Response status:", response.status);
 
-            // Handle non-streaming error responses
-            if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
-                const errorData = await response.json();
-                const errorInfo: ErrorInfo = {
-                    category: errorData.category || 'UNKNOWN_ERROR',
-                    message: errorData.message || errorData.error || 'An error occurred',
-                    originalError: errorData.error,
-                    retryable: errorData.retryable !== false
-                };
-                setLastError(errorInfo);
-                setIsResearching(false);
-                toast.error(errorInfo.message);
-                return;
+            if (!startResponse.ok) {
+                const errorData = await startResponse.json();
+                throw new Error(errorData.message || errorData.error || 'Failed to start research job');
             }
 
-            if (!response.body) {
-                console.error("No response body received");
-                throw new Error("No response body");
-            }
+            const startData = await startResponse.json();
+            const jobId = startData.jobId;
+            setCurrentJobId(jobId);
+            setResearchStatus("Research job started. Processing in background...");
+            setCurrentProgress(0);
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
+            // Poll for job status
+            const pollJobStatus = async () => {
+                try {
+                    const statusResponse = await fetch(`/api/research/jobs/${jobId}`);
+                    if (!statusResponse.ok) {
+                        throw new Error('Failed to get job status');
+                    }
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+                    const job = await statusResponse.json();
+                    setCurrentProgress(job.progress || 0);
 
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
-
-                const events = buffer.split("\n\n");
-                // Keep the last partial event in the buffer
-                buffer = events.pop() || "";
-
-                for (const eventBlock of events) {
-                    const lines = eventBlock.split("\n");
-                    const eventLine = lines.find(l => l.startsWith("event: "));
-                    const dataLine = lines.find(l => l.startsWith("data: "));
-
-                    if (eventLine && dataLine) {
-                        const eventType = eventLine.replace("event: ", "").trim();
-                        const data = JSON.parse(dataLine.replace("data: ", ""));
-
-                        if (eventType === "status") {
-                            setResearchStatus(data.message);
-                            setCurrentProgress(data.progress || 0);
-                            
-                            // Add to activity log
-                            setActivityLog(prev => {
-                                // Mark previous step as completed
-                                const updated = prev.map(entry => 
-                                    entry.step === data.step ? { ...entry, completed: true } : entry
-                                );
-                                
-                                // Add new entry if not already present
-                                if (!updated.find(e => e.step === data.step && !e.completed)) {
-                                    updated.push({
-                                        message: data.message,
-                                        step: data.step,
-                                        progress: data.progress || 0,
-                                        timestamp: new Date(),
-                                        completed: false
-                                    });
-                                }
-                                
-                                return updated;
-                            });
-                        } else if (eventType === "preview") {
-                            // Store field proposals and other data
-                            setFieldProposals(data.field_proposals || []);
-                            // Set fullReport from the preview event (this is the current research)
-                            // The report should also be saved to DB by the API route
-                            setFullReport(data.full_report || null);
-                            setPortChangeSuggestion(data.port_change_suggestion || null);
-                            setDataToUpdate(data.data_to_update);
-                            setNotesProposal(data.notes_proposal || null);
-                            
-                            // Auto-approve high confidence fields (>80%)
-                            const autoApproved = new Set(
-                                (data.field_proposals || [])
-                                    .filter((p: any) => p.autoApproved && p.confidence > 0.80)
-                                    .map((p: any) => p.field)
-                            );
-                            setApprovedFields(autoApproved);
-                            
-                            setShowPreview(true);
-                            setResearchStatus("Research complete - Review changes");
-                            setIsResearching(false);
-                            
-                            // Mark final step as completed
-                            setActivityLog(prev => prev.map(entry => 
-                                entry.step === 'complete' ? { ...entry, completed: true } : entry
-                            ));
-                        } else if (eventType === "error") {
-                            const errorInfo: ErrorInfo = {
-                                category: data.category || 'UNKNOWN_ERROR',
-                                message: data.message || 'An unexpected error occurred.',
-                                originalError: data.originalError,
-                                retryable: data.retryable !== false
-                            };
-                            setLastError(errorInfo);
-                            setIsResearching(false);
-                            
-                            if (errorInfo.category === 'NETWORK_ERROR' && errorInfo.message.includes('cancelled')) {
-                                toast.success('Research cancelled');
-                            } else {
-                                toast.error(errorInfo.message);
-                            }
+                    if (job.status === 'completed') {
+                        // Job completed, refresh terminal data to get results
+                        setIsResearching(false);
+                        setResearchStatus("Research complete - Review changes");
+                        
+                        // Clear polling
+                        if (pollingIntervalRef.current) {
+                            clearInterval(pollingIntervalRef.current);
+                            pollingIntervalRef.current = null;
+                        }
+                        
+                        // Force refresh: Use router to refresh server-side data
+                        router.refresh();
+                        
+                        // Also clear and reload report state after a short delay to allow data to refresh
+                        setTimeout(() => {
+                            setFullReport(null);
+                            // The useEffect will reload the report when terminal prop updates
+                        }, 500);
+                        
+                        toast.success('Research completed! Review the changes below.');
+                        return;
+                    } else if (job.status === 'failed') {
+                        setIsResearching(false);
+                        setResearchStatus("Research failed");
+                        const errorInfo: ErrorInfo = {
+                            category: 'JOB_ERROR',
+                            message: job.error || 'Research job failed',
+                            retryable: true
+                        };
+                        setLastError(errorInfo);
+                        toast.error(job.error || 'Research job failed');
+                        
+                        // Clear polling
+                        if (pollingIntervalRef.current) {
+                            clearInterval(pollingIntervalRef.current);
+                            pollingIntervalRef.current = null;
+                        }
+                        return;
+                    } else if (job.status === 'running' || job.status === 'pending') {
+                        // Update progress display
+                        const progress = job.progress || 0;
+                        setCurrentProgress(progress);
+                        if (progress > 0) {
+                            setResearchStatus(`Researching... (${progress}%)`);
+                        } else {
+                            setResearchStatus(job.status === 'pending' ? 'Job queued, waiting to start...' : 'Researching...');
                         }
                     }
+                } catch (error) {
+                    console.error('Error polling job status:', error);
                 }
-            }
+            };
+
+            // Poll every 2 seconds
+            pollingIntervalRef.current = setInterval(pollJobStatus, 2000);
+            // Initial poll
+            pollJobStatus();
+
         } catch (e) {
-            console.error(e);
-            
-            // Handle abort
-            if (e instanceof Error && (e.name === 'AbortError' || e.message.includes('aborted'))) {
-                setIsResearching(false);
-                setResearchStatus("Cancelled");
-                toast.success('Research cancelled');
-                return;
-            }
-            
-            // Handle other errors
+            setIsResearching(false);
+            setResearchStatus("Failed to start research");
             const errorInfo: ErrorInfo = {
                 category: 'NETWORK_ERROR',
-                message: 'Network error occurred. Please check your connection and try again.',
+                message: e instanceof Error ? e.message : 'Failed to start research job',
                 originalError: e instanceof Error ? e.message : String(e),
                 retryable: true
             };
             setLastError(errorInfo);
-            setIsResearching(false);
             toast.error(errorInfo.message);
+            
+            // Clear polling if it was set
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
         }
     };
 
     const cancelResearch = () => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            abortControllerRef.current = null;
+        // Clear polling
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
         }
         setIsResearching(false);
-        setResearchStatus("Cancelling...");
+        setResearchStatus("Cancelled");
+        setCurrentJobId(null);
+        toast.success('Research monitoring stopped (job continues in background)');
     };
+    
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+        };
+    }, []);
 
     const applyChanges = async () => {
         if (approvedFields.size === 0 && !notesProposal) {
@@ -273,12 +250,8 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
                         updateData.cargoTypes = JSON.stringify(proposal.proposedValue);
                     } else if (proposal.field === 'operatorGroup' && proposal.proposedValue !== null && proposal.proposedValue !== undefined) {
                         updateData.operatorGroup = proposal.proposedValue;
-                    } else if (proposal.field === 'ownership' && proposal.proposedValue !== null && proposal.proposedValue !== undefined) {
-                        updateData.ownership = proposal.proposedValue;
                     } else if (proposal.field === 'capacity' && proposal.proposedValue !== null && proposal.proposedValue !== undefined) {
                         updateData.capacity = proposal.proposedValue;
-                    } else if (proposal.field === 'ispsRiskLevel' && proposal.proposedValue !== null && proposal.proposedValue !== undefined) {
-                        updateData.ispsRiskLevel = proposal.proposedValue;
                     } else if (proposal.field === 'portId' && proposal.proposedValue !== null && proposal.proposedValue !== undefined) {
                         // Port ID needs to be resolved to actual port ID, not name
                         // This should already be handled in the API route, but we'll pass it through
@@ -476,19 +449,6 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Ownership</label>
-                        <input
-                            type="text"
-                            value={formData.ownership || ""}
-                            onChange={(e) => handleChange("ownership", e.target.value)}
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                            placeholder="Ownership structure"
-                        />
-                    </div>
-                </div>
-
-                <div className="border-t border-gray-100 pt-4 grid grid-cols-2 gap-4">
-                    <div>
                         <label className="block text-sm font-medium text-gray-700">Capacity</label>
                         <input
                             type="text"
@@ -497,19 +457,6 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
                             placeholder="e.g. 1.2M TEU"
                         />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">ISPS Risk</label>
-                        <select
-                            value={formData.ispsRiskLevel}
-                            onChange={(e) => handleChange("ispsRiskLevel", e.target.value as ISPSRiskLevel)}
-                            className={`mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm font-medium ${formData.ispsRiskLevel === "High" || formData.ispsRiskLevel === "Very High" ? "text-red-600 bg-red-50" : ""
-                                }`}
-                        >
-                            {RISK_OPTIONS.map(r => (
-                                <option key={r} value={r}>{r}</option>
-                            ))}
-                        </select>
                     </div>
                 </div>
 
@@ -557,7 +504,7 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
                         rows={4}
                         value={formData.notes || ""}
                         onChange={(e) => handleChange("notes", e.target.value)}
-                        placeholder="Add strategic notes, ownership details, or local intelligence..."
+                        placeholder="Add strategic notes or local intelligence..."
                         className="block w-full border border-gray-300 rounded-md shadow-sm p-3 text-sm focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
@@ -768,6 +715,71 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
+                                                {/* Validation Warnings */}
+                                                {proposal.validationWarnings && proposal.validationWarnings.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                                        <div className="font-semibold text-yellow-800 mb-1">Validation Warnings:</div>
+                                                        <ul className="list-disc list-inside text-yellow-700 space-y-0.5">
+                                                            {proposal.validationWarnings.map((warning: string, idx: number) => (
+                                                                <li key={idx}>{warning}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Validation Errors */}
+                                                {proposal.validationErrors && proposal.validationErrors.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+                                                        <div className="font-semibold text-red-800 mb-1">Validation Errors:</div>
+                                                        <ul className="list-disc list-inside text-red-700 space-y-0.5">
+                                                            {proposal.validationErrors.map((error: string, idx: number) => (
+                                                                <li key={idx}>{error}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Conflicts */}
+                                                {proposal.hasConflict && proposal.conflicts && proposal.conflicts.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
+                                                        <div className="font-semibold text-orange-800 mb-1">⚠️ Conflicting Values Found:</div>
+                                                        <div className="space-y-2">
+                                                            {proposal.conflicts.map((conflict: any, idx: number) => (
+                                                                <div key={idx} className="border-l-2 border-orange-300 pl-2">
+                                                                    <div className="font-medium text-orange-900">
+                                                                        Alternative from {conflict.sourceQuery}:
+                                                                    </div>
+                                                                    <div className="text-orange-700 mt-0.5">
+                                                                        {typeof conflict.conflictingValue === 'object' 
+                                                                            ? JSON.stringify(conflict.conflictingValue) 
+                                                                            : String(conflict.conflictingValue)}
+                                                                    </div>
+                                                                    <div className="text-orange-600 text-xs mt-0.5">
+                                                                        Confidence: {Math.round(conflict.confidence * 100)}%
+                                                                    </div>
+                                                                    {conflict.evidence && (
+                                                                        <div className="text-orange-600 text-xs mt-0.5 italic">
+                                                                            "{conflict.evidence.substring(0, 100)}..."
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Quality indicator */}
+                                                {proposal.llmQuality && (
+                                                    <div className="mt-1 text-xs text-gray-500">
+                                                        Quality: <span className="font-medium">
+                                                            {proposal.llmQuality === 'explicit' ? '✓ Explicitly stated' :
+                                                             proposal.llmQuality === 'inferred' ? '~ Inferred' :
+                                                             '? Partial/Uncertain'}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                
                                                 <details className="mt-2">
                                                     <summary className="cursor-pointer text-purple-600 hover:text-purple-800 text-xs">
                                                         Reasoning & Sources
@@ -803,9 +815,7 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
                                                                 className="rounded"
                                                             />
                                                             <span className="font-semibold text-purple-900">
-                                                                {proposal.field === 'ownership' ? 'Ownership' :
-                                                                 proposal.field === 'ispsRiskLevel' ? 'ISPS Risk Level' :
-                                                                 proposal.field === 'cargoTypes' ? 'Cargo Types' :
+                                                                {proposal.field === 'cargoTypes' ? 'Cargo Types' :
                                                                  proposal.field === 'portId' ? 'Port' :
                                                                  proposal.field}
                                                             </span>
@@ -847,6 +857,71 @@ export const TerminalDetail = ({ terminal, clusters, ports, onClose, onUpdate, o
                                                         </div>
                                                     </div>
                                                 </div>
+                                                
+                                                {/* Validation Warnings */}
+                                                {proposal.validationWarnings && proposal.validationWarnings.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                                        <div className="font-semibold text-yellow-800 mb-1">Validation Warnings:</div>
+                                                        <ul className="list-disc list-inside text-yellow-700 space-y-0.5">
+                                                            {proposal.validationWarnings.map((warning: string, idx: number) => (
+                                                                <li key={idx}>{warning}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Validation Errors */}
+                                                {proposal.validationErrors && proposal.validationErrors.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+                                                        <div className="font-semibold text-red-800 mb-1">Validation Errors:</div>
+                                                        <ul className="list-disc list-inside text-red-700 space-y-0.5">
+                                                            {proposal.validationErrors.map((error: string, idx: number) => (
+                                                                <li key={idx}>{error}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Conflicts */}
+                                                {proposal.hasConflict && proposal.conflicts && proposal.conflicts.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
+                                                        <div className="font-semibold text-orange-800 mb-1">⚠️ Conflicting Values Found:</div>
+                                                        <div className="space-y-2">
+                                                            {proposal.conflicts.map((conflict: any, idx: number) => (
+                                                                <div key={idx} className="border-l-2 border-orange-300 pl-2">
+                                                                    <div className="font-medium text-orange-900">
+                                                                        Alternative from {conflict.sourceQuery}:
+                                                                    </div>
+                                                                    <div className="text-orange-700 mt-0.5">
+                                                                        {typeof conflict.conflictingValue === 'object' 
+                                                                            ? JSON.stringify(conflict.conflictingValue) 
+                                                                            : String(conflict.conflictingValue)}
+                                                                    </div>
+                                                                    <div className="text-orange-600 text-xs mt-0.5">
+                                                                        Confidence: {Math.round(conflict.confidence * 100)}%
+                                                                    </div>
+                                                                    {conflict.evidence && (
+                                                                        <div className="text-orange-600 text-xs mt-0.5 italic">
+                                                                            "{conflict.evidence.substring(0, 100)}..."
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Quality indicator */}
+                                                {proposal.llmQuality && (
+                                                    <div className="mt-1 text-xs text-gray-500">
+                                                        Quality: <span className="font-medium">
+                                                            {proposal.llmQuality === 'explicit' ? '✓ Explicitly stated' :
+                                                             proposal.llmQuality === 'inferred' ? '~ Inferred' :
+                                                             '? Partial/Uncertain'}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                
                                                 <details className="mt-2">
                                                     <summary className="cursor-pointer text-purple-600 hover:text-purple-800 text-xs">
                                                         Reasoning & Sources

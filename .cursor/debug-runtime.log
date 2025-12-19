@@ -1,0 +1,354 @@
+[2025-12-19T09:03:06.146Z] [DEBUG] ========== DEEP RESEARCH ROUTE HANDLER CALLED ==========
+[2025-12-19T09:03:06.146Z] [DEBUG] Port ID from params: port-antwerp
+[2025-12-19T09:03:06.147Z] [DEBUG] Request URL: http://localhost:3000/api/ports/port-antwerp/deep-research?background=true
+[2025-12-19T09:03:06.147Z] [DEBUG] Research provider: perplexity
+[2025-12-19T09:03:06.149Z] [DEBUG] Creating ReadableStream, isBackgroundMode: true
+[2025-12-19T09:03:06.150Z] [DEBUG] ========== STREAM START FUNCTION EXECUTED ==========
+[2025-12-19T09:03:06.151Z] [DEBUG] Port ID: port-antwerp, Background mode: true
+[2025-12-19T09:03:06.152Z] [DEBUG] sendEvent: status, progress: N/A
+[2025-12-19T09:03:06.152Z] [DEBUG] sendEvent: status, progress: 20
+[2025-12-19T09:03:06.153Z] [DEBUG] ========== STARTING PARALLEL QUERIES ==========
+[2025-12-19T09:03:06.153Z] [DEBUG] Promise.allSettled starting - timeout: 150000ms
+[2025-12-19T09:03:06.153Z] [DEBUG] Time since stream start: 4ms
+[2025-12-19T09:03:06.153Z] [DEBUG] Query 1 calling executeResearchQuery...
+[2025-12-19T09:03:06.154Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T09:03:06.154Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T09:03:06.155Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T09:03:06.156Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T09:03:06.156Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T09:03:06.157Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T09:03:06.157Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T09:03:06.158Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T09:03:06.158Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T09:03:06.158Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T09:03:06.159Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-deep-research, aborted: false
+[2025-12-19T09:03:06.159Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T09:03:06.159Z] [DEBUG] Trying Perplexity model: sonar-deep-research, aborted: false
+[2025-12-19T09:03:06.160Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T09:03:06.160Z] [DEBUG] Model: sonar-deep-research, Has abort signal: true, Aborted: false
+[2025-12-19T09:03:10.484Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T09:03:10.485Z] [DEBUG] Status: 200, StatusText: OK, Duration: 4326ms
+[2025-12-19T09:03:10.492Z] [DEBUG] Extracted content length: 1580 characters
+[2025-12-19T09:03:10.493Z] [DEBUG] executeResearchQuery success - result length: 1580
+[2025-12-19T09:03:12.382Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T09:03:12.382Z] [DEBUG] Status: 200, StatusText: OK, Duration: 6227ms
+[2025-12-19T09:03:12.384Z] [DEBUG] Extracted content length: 2375 characters
+[2025-12-19T09:03:12.384Z] [DEBUG] executeResearchQuery success - result length: 2375
+[2025-12-19T09:03:12.384Z] [DEBUG] Query 1 success - duration: 6.2s
+[2025-12-19T09:05:36.171Z] [DEBUG] ========== PERPLEXITY FETCH ERROR ==========
+[2025-12-19T09:05:36.173Z] [DEBUG] Error name: AbortError, Message: This operation was aborted
+[2025-12-19T09:05:36.173Z] [DEBUG] Duration before error: 150011ms
+[2025-12-19T09:05:36.173Z] [DEBUG] Abort signal aborted: true
+[2025-12-19T09:05:36.173Z] [DEBUG] Combined abort signal aborted: true
+[2025-12-19T09:05:36.173Z] [DEBUG] Fetch was aborted - throwing abort error
+[2025-12-19T09:05:36.174Z] [DEBUG] executeResearchQuery ERROR: Request aborted, aborted: true
+[2025-12-19T09:05:36.177Z] [DEBUG] ========== PARALLEL QUERIES COMPLETED ==========
+[2025-12-19T09:05:36.177Z] [DEBUG] Duration: 150.0s
+[2025-12-19T09:05:36.178Z] [DEBUG] Results - result1: fulfilled, result2: fulfilled, result5: rejected
+[2025-12-19T09:05:36.179Z] [DEBUG] sendEvent: status, progress: 70
+[2025-12-19T09:05:36.179Z] [DEBUG] sendEvent: status, progress: 75
+[2025-12-19T09:05:36.463Z] [DEBUG] sendEvent: status, progress: 80
+[2025-12-19T09:05:36.464Z] [DEBUG] sendEvent: status, progress: 85
+[2025-12-19T09:05:39.540Z] [DEBUG] sendEvent: status, progress: 94
+[2025-12-19T09:05:39.540Z] [DEBUG] sendEvent: status, progress: 94.5
+[2025-12-19T09:05:39.541Z] [DEBUG] sendEvent: status, progress: 94.7
+[2025-12-19T09:05:44.487Z] [DEBUG] sendEvent: status, progress: 95
+[2025-12-19T09:05:53.899Z] [DEBUG] sendEvent: status, progress: 98
+[2025-12-19T09:06:06.161Z] [DEBUG] ========== FETCH PROMISE RACE TIMEOUT after 180000ms ==========
+[2025-12-19T09:06:06.164Z] [DEBUG] ========== FETCH PROMISE RACE TIMEOUT after 180000ms ==========
+[2025-12-19T09:06:06.165Z] [DEBUG] ========== FETCH PROMISE RACE TIMEOUT after 180000ms ==========
+[2025-12-19T09:06:09.682Z] [DEBUG] sendEvent: status, progress: 99
+[2025-12-19T09:06:09.683Z] [DEBUG] sendEvent: status, progress: 100
+[2025-12-19T09:06:09.683Z] [DEBUG] sendEvent: preview, progress: N/A
+[2025-12-19T09:45:17.352Z] [DEBUG] ========== DEEP RESEARCH ROUTE HANDLER CALLED ==========
+[2025-12-19T09:45:17.353Z] [DEBUG] Port ID from params: port-antwerp
+[2025-12-19T09:45:17.353Z] [DEBUG] Request URL: http://localhost:3000/api/ports/port-antwerp/deep-research?background=true
+[2025-12-19T09:45:17.354Z] [DEBUG] Research provider: perplexity
+[2025-12-19T09:45:17.356Z] [DEBUG] Creating ReadableStream, isBackgroundMode: true
+[2025-12-19T09:45:17.358Z] [DEBUG] ========== STREAM START FUNCTION EXECUTED ==========
+[2025-12-19T09:45:17.358Z] [DEBUG] Port ID: port-antwerp, Background mode: true
+[2025-12-19T09:45:17.359Z] [DEBUG] sendEvent: status, progress: N/A
+[2025-12-19T09:45:17.359Z] [DEBUG] sendEvent: status, progress: 20
+[2025-12-19T09:45:17.360Z] [DEBUG] ========== STARTING PARALLEL QUERIES ==========
+[2025-12-19T09:45:17.360Z] [DEBUG] Promise.allSettled starting - timeout: 180000ms
+[2025-12-19T09:45:17.360Z] [DEBUG] Time since stream start: 4ms
+[2025-12-19T09:45:17.360Z] [DEBUG] Query 1 calling executeResearchQuery...
+[2025-12-19T09:45:17.361Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T09:45:17.361Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T09:45:17.362Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T09:45:17.362Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T09:45:17.362Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T09:45:17.364Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T09:45:17.364Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T09:45:17.364Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T09:45:17.364Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T09:45:17.364Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T09:45:17.365Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-deep-research, aborted: false
+[2025-12-19T09:45:17.365Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T09:45:17.368Z] [DEBUG] Trying Perplexity model: sonar-deep-research, aborted: false
+[2025-12-19T09:45:17.369Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T09:45:17.369Z] [DEBUG] Model: sonar-deep-research, Has abort signal: true, Aborted: false
+[2025-12-19T09:45:23.872Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T09:45:23.873Z] [DEBUG] Status: 200, StatusText: OK, Duration: 6508ms
+[2025-12-19T09:45:23.876Z] [DEBUG] Extracted content length: 2260 characters
+[2025-12-19T09:45:23.876Z] [DEBUG] executeResearchQuery success - result length: 2260
+[2025-12-19T09:45:24.591Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T09:45:24.591Z] [DEBUG] Status: 200, StatusText: OK, Duration: 7229ms
+[2025-12-19T09:45:24.593Z] [DEBUG] Extracted content length: 2788 characters
+[2025-12-19T09:45:24.593Z] [DEBUG] executeResearchQuery success - result length: 2788
+[2025-12-19T09:45:24.593Z] [DEBUG] Query 1 success - duration: 7.2s
+[2025-12-19T09:48:11.822Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T09:48:11.823Z] [DEBUG] Status: 200, StatusText: OK, Duration: 174454ms
+[2025-12-19T09:48:11.987Z] [DEBUG] Extracted content length: 48004 characters
+[2025-12-19T09:48:11.988Z] [DEBUG] executeResearchQuery success - result length: 48004
+[2025-12-19T09:48:11.990Z] [DEBUG] ========== PARALLEL QUERIES COMPLETED ==========
+[2025-12-19T09:48:11.990Z] [DEBUG] Duration: 174.6s
+[2025-12-19T09:48:11.990Z] [DEBUG] Results - result1: fulfilled, result2: fulfilled, result5: fulfilled
+[2025-12-19T09:48:11.991Z] [DEBUG] sendEvent: status, progress: 70
+[2025-12-19T09:48:11.991Z] [DEBUG] sendEvent: status, progress: 75
+[2025-12-19T09:48:12.224Z] [DEBUG] sendEvent: status, progress: 80
+[2025-12-19T09:48:12.225Z] [DEBUG] sendEvent: status, progress: 85
+[2025-12-19T09:48:18.936Z] [DEBUG] sendEvent: status, progress: 94
+[2025-12-19T09:48:18.937Z] [DEBUG] sendEvent: status, progress: 94.5
+[2025-12-19T09:48:18.937Z] [DEBUG] sendEvent: status, progress: 94.7
+[2025-12-19T09:48:25.528Z] [DEBUG] sendEvent: status, progress: 95
+[2025-12-19T09:48:31.886Z] [DEBUG] sendEvent: status, progress: 98
+[2025-12-19T09:48:38.962Z] [DEBUG] sendEvent: status, progress: 99
+[2025-12-19T09:48:38.963Z] [DEBUG] sendEvent: status, progress: 100
+[2025-12-19T09:48:38.964Z] [DEBUG] sendEvent: preview, progress: N/A
+[2025-12-19T10:00:27.071Z] [DEBUG] ========== DEEP RESEARCH ROUTE HANDLER CALLED ==========
+[2025-12-19T10:00:27.072Z] [DEBUG] Port ID from params: port-constanta
+[2025-12-19T10:00:27.072Z] [DEBUG] Request URL: http://localhost:3000/api/ports/port-constanta/deep-research?background=true
+[2025-12-19T10:00:27.072Z] [DEBUG] Research provider: perplexity
+[2025-12-19T10:00:27.076Z] [DEBUG] Creating ReadableStream, isBackgroundMode: true
+[2025-12-19T10:00:27.078Z] [DEBUG] ========== STREAM START FUNCTION EXECUTED ==========
+[2025-12-19T10:00:27.079Z] [DEBUG] Port ID: port-constanta, Background mode: true
+[2025-12-19T10:00:27.080Z] [DEBUG] sendEvent: status, progress: N/A
+[2025-12-19T10:00:27.080Z] [DEBUG] sendEvent: status, progress: 20
+[2025-12-19T10:00:27.080Z] [DEBUG] ========== STARTING PARALLEL QUERIES ==========
+[2025-12-19T10:00:27.080Z] [DEBUG] Promise.allSettled starting - timeout: 180000ms
+[2025-12-19T10:00:27.080Z] [DEBUG] Time since stream start: 4ms
+[2025-12-19T10:00:27.081Z] [DEBUG] Query 1 calling executeResearchQuery...
+[2025-12-19T10:00:27.081Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T10:00:27.082Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T10:00:27.082Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T10:00:27.082Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T10:00:27.082Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T10:00:27.083Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T10:00:27.084Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T10:00:27.084Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T10:00:27.085Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T10:00:27.085Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T10:00:27.086Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-deep-research, aborted: false
+[2025-12-19T10:00:27.086Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T10:00:27.086Z] [DEBUG] Trying Perplexity model: sonar-deep-research, aborted: false
+[2025-12-19T10:00:27.087Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T10:00:27.087Z] [DEBUG] Model: sonar-deep-research, Has abort signal: true, Aborted: false
+[2025-12-19T10:00:32.121Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T10:00:32.122Z] [DEBUG] Status: 200, StatusText: OK, Duration: 5039ms
+[2025-12-19T10:00:32.127Z] [DEBUG] Extracted content length: 1663 characters
+[2025-12-19T10:00:32.127Z] [DEBUG] executeResearchQuery success - result length: 1663
+[2025-12-19T10:00:32.128Z] [DEBUG] Query 1 success - duration: 5.0s
+[2025-12-19T10:00:51.119Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T10:00:51.120Z] [DEBUG] Status: 200, StatusText: OK, Duration: 24034ms
+[2025-12-19T10:00:51.121Z] [DEBUG] Extracted content length: 5088 characters
+[2025-12-19T10:00:51.121Z] [DEBUG] executeResearchQuery success - result length: 5088
+[2025-12-19T10:02:41.140Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T10:02:41.141Z] [DEBUG] Status: 200, StatusText: OK, Duration: 134054ms
+[2025-12-19T10:02:41.144Z] [DEBUG] Extracted content length: 48001 characters
+[2025-12-19T10:02:41.144Z] [DEBUG] executeResearchQuery success - result length: 48001
+[2025-12-19T10:02:41.145Z] [DEBUG] ========== PARALLEL QUERIES COMPLETED ==========
+[2025-12-19T10:02:41.145Z] [DEBUG] Duration: 134.1s
+[2025-12-19T10:02:41.145Z] [DEBUG] Results - result1: fulfilled, result2: fulfilled, result5: fulfilled
+[2025-12-19T10:02:41.145Z] [DEBUG] sendEvent: status, progress: 70
+[2025-12-19T10:02:41.145Z] [DEBUG] sendEvent: status, progress: 75
+[2025-12-19T10:02:41.431Z] [DEBUG] sendEvent: status, progress: 80
+[2025-12-19T10:02:41.431Z] [DEBUG] sendEvent: status, progress: 85
+[2025-12-19T10:02:46.369Z] [DEBUG] sendEvent: status, progress: 94
+[2025-12-19T10:02:46.370Z] [DEBUG] sendEvent: status, progress: 94.5
+[2025-12-19T10:02:46.370Z] [DEBUG] sendEvent: status, progress: 94.7
+[2025-12-19T10:02:48.925Z] [DEBUG] sendEvent: status, progress: 95
+[2025-12-19T10:02:58.857Z] [DEBUG] sendEvent: status, progress: 98
+[2025-12-19T10:03:10.942Z] [DEBUG] sendEvent: status, progress: 99
+[2025-12-19T10:03:10.946Z] [DEBUG] sendEvent: status, progress: 100
+[2025-12-19T10:03:10.947Z] [DEBUG] sendEvent: preview, progress: N/A
+[2025-12-19T11:28:51.646Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T11:28:51.647Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:28:51.648Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T11:28:51.648Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:28:51.648Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T11:28:51.649Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T11:28:51.649Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:28:51.649Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T11:28:51.649Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:28:51.649Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T11:28:51.650Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T11:28:51.650Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:28:51.650Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T11:28:51.650Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:28:51.650Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T11:28:51.651Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T11:28:51.651Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:28:51.651Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T11:28:51.651Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:28:51.651Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T11:28:51.651Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T11:28:51.652Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:28:51.652Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T11:28:51.652Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:28:51.652Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T11:28:51.652Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T11:28:51.652Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:28:51.653Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T11:28:51.653Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:28:51.653Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T11:28:58.967Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:28:58.967Z] [DEBUG] Status: 200, StatusText: OK, Duration: 7319ms
+[2025-12-19T11:28:58.969Z] [DEBUG] Extracted content length: 2144 characters
+[2025-12-19T11:28:58.969Z] [DEBUG] executeResearchQuery success - result length: 2144
+[2025-12-19T11:28:59.101Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:28:59.102Z] [DEBUG] Status: 200, StatusText: OK, Duration: 7451ms
+[2025-12-19T11:28:59.105Z] [DEBUG] Extracted content length: 2144 characters
+[2025-12-19T11:28:59.105Z] [DEBUG] executeResearchQuery success - result length: 2144
+[2025-12-19T11:29:02.245Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:29:02.246Z] [DEBUG] Status: 200, StatusText: OK, Duration: 10593ms
+[2025-12-19T11:29:02.249Z] [DEBUG] Extracted content length: 2424 characters
+[2025-12-19T11:29:02.250Z] [DEBUG] executeResearchQuery success - result length: 2424
+[2025-12-19T11:29:19.133Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:29:19.135Z] [DEBUG] Status: 200, StatusText: OK, Duration: 27484ms
+[2025-12-19T11:29:19.139Z] [DEBUG] Extracted content length: 6988 characters
+[2025-12-19T11:29:19.139Z] [DEBUG] executeResearchQuery success - result length: 6988
+[2025-12-19T11:29:21.190Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:29:21.191Z] [DEBUG] Status: 200, StatusText: OK, Duration: 29539ms
+[2025-12-19T11:29:21.194Z] [DEBUG] Extracted content length: 8544 characters
+[2025-12-19T11:29:21.195Z] [DEBUG] executeResearchQuery success - result length: 8544
+[2025-12-19T11:29:29.370Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:29:29.371Z] [DEBUG] Status: 200, StatusText: OK, Duration: 37717ms
+[2025-12-19T11:29:29.589Z] [DEBUG] Extracted content length: 12485 characters
+[2025-12-19T11:29:29.590Z] [DEBUG] executeResearchQuery success - result length: 12485
+[2025-12-19T11:36:24.087Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T11:36:24.088Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:36:24.089Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T11:36:24.090Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:36:24.090Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T11:36:24.091Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T11:36:24.091Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T11:36:24.091Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T11:36:24.091Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T11:36:24.091Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T11:36:29.010Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:36:29.010Z] [DEBUG] Status: 200, StatusText: OK, Duration: 4920ms
+[2025-12-19T11:36:29.014Z] [DEBUG] Extracted content length: 974 characters
+[2025-12-19T11:36:29.015Z] [DEBUG] executeResearchQuery success - result length: 974
+[2025-12-19T11:36:35.769Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T11:36:35.770Z] [DEBUG] Status: 200, StatusText: OK, Duration: 11678ms
+[2025-12-19T11:36:35.771Z] [DEBUG] Extracted content length: 3734 characters
+[2025-12-19T11:36:35.771Z] [DEBUG] executeResearchQuery success - result length: 3734
+[2025-12-19T14:19:12.459Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:19:12.460Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:19:12.460Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:19:12.461Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:19:12.461Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:19:12.461Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:19:12.461Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:19:12.461Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:19:12.461Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:19:12.462Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:19:12.462Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:19:12.462Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:19:12.462Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:19:12.462Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:19:12.462Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:19:12.463Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:19:12.463Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:19:12.463Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:19:12.464Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:19:12.464Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:19:12.464Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:19:12.464Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:19:12.464Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:19:12.465Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:19:12.465Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:19:12.465Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T14:19:12.465Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:19:12.465Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T14:19:12.465Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:19:12.465Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T14:19:20.670Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:19:20.671Z] [DEBUG] Status: 200, StatusText: OK, Duration: 8205ms
+[2025-12-19T14:19:20.674Z] [DEBUG] Extracted content length: 1805 characters
+[2025-12-19T14:19:20.675Z] [DEBUG] executeResearchQuery success - result length: 1805
+[2025-12-19T14:19:21.318Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:19:21.318Z] [DEBUG] Status: 200, StatusText: OK, Duration: 8857ms
+[2025-12-19T14:19:21.321Z] [DEBUG] Extracted content length: 1970 characters
+[2025-12-19T14:19:21.321Z] [DEBUG] executeResearchQuery success - result length: 1970
+[2025-12-19T14:19:22.440Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:19:22.441Z] [DEBUG] Status: 200, StatusText: OK, Duration: 9976ms
+[2025-12-19T14:19:22.444Z] [DEBUG] Extracted content length: 3585 characters
+[2025-12-19T14:19:22.444Z] [DEBUG] executeResearchQuery success - result length: 3585
+[2025-12-19T14:19:23.185Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:19:23.186Z] [DEBUG] Status: 200, StatusText: OK, Duration: 10723ms
+[2025-12-19T14:19:23.189Z] [DEBUG] Extracted content length: 2084 characters
+[2025-12-19T14:19:23.190Z] [DEBUG] executeResearchQuery success - result length: 2084
+[2025-12-19T14:19:24.604Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:19:24.605Z] [DEBUG] Status: 200, StatusText: OK, Duration: 12139ms
+[2025-12-19T14:19:24.609Z] [DEBUG] Extracted content length: 2817 characters
+[2025-12-19T14:19:24.609Z] [DEBUG] executeResearchQuery success - result length: 2817
+[2025-12-19T14:19:43.759Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:19:43.760Z] [DEBUG] Status: 200, StatusText: OK, Duration: 31299ms
+[2025-12-19T14:19:43.764Z] [DEBUG] Extracted content length: 6132 characters
+[2025-12-19T14:19:43.764Z] [DEBUG] executeResearchQuery success - result length: 6132
+[2025-12-19T14:20:22.901Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:20:22.902Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:20:22.903Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:20:22.903Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:20:22.903Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:20:22.904Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:20:22.904Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:20:22.904Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:20:22.904Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:20:22.904Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:20:22.905Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:20:22.905Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:20:22.905Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:20:22.905Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:20:22.906Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:20:22.906Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:20:22.906Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:20:22.906Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:20:22.906Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:20:22.907Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:20:22.907Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar, aborted: false
+[2025-12-19T14:20:22.907Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:20:22.907Z] [DEBUG] Trying Perplexity model: sonar, aborted: false
+[2025-12-19T14:20:22.907Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:20:22.907Z] [DEBUG] Model: sonar, Has abort signal: true, Aborted: false
+[2025-12-19T14:20:22.908Z] [DEBUG] Before provider call - provider: perplexity, selectedModel: sonar-pro, aborted: false
+[2025-12-19T14:20:22.908Z] [DEBUG] Calling executePerplexityQuery...
+[2025-12-19T14:20:22.908Z] [DEBUG] Trying Perplexity model: sonar-pro, aborted: false
+[2025-12-19T14:20:22.908Z] [DEBUG] Making Perplexity API call to https://api.perplexity.ai/chat/completions
+[2025-12-19T14:20:22.908Z] [DEBUG] Model: sonar-pro, Has abort signal: true, Aborted: false
+[2025-12-19T14:20:28.987Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:20:28.988Z] [DEBUG] Status: 200, StatusText: OK, Duration: 6079ms
+[2025-12-19T14:20:28.991Z] [DEBUG] Extracted content length: 1867 characters
+[2025-12-19T14:20:28.992Z] [DEBUG] executeResearchQuery success - result length: 1867
+[2025-12-19T14:20:32.513Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:20:32.516Z] [DEBUG] Status: 200, StatusText: OK, Duration: 9609ms
+[2025-12-19T14:20:32.519Z] [DEBUG] Extracted content length: 2211 characters
+[2025-12-19T14:20:32.519Z] [DEBUG] executeResearchQuery success - result length: 2211
+[2025-12-19T14:20:51.068Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:20:51.071Z] [DEBUG] Status: 200, StatusText: OK, Duration: 28165ms
+[2025-12-19T14:20:51.076Z] [DEBUG] Extracted content length: 5966 characters
+[2025-12-19T14:20:51.076Z] [DEBUG] executeResearchQuery success - result length: 5966
+[2025-12-19T14:20:51.548Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:20:51.548Z] [DEBUG] Status: 200, StatusText: OK, Duration: 28641ms
+[2025-12-19T14:20:51.552Z] [DEBUG] Extracted content length: 6256 characters
+[2025-12-19T14:20:51.553Z] [DEBUG] executeResearchQuery success - result length: 6256
+[2025-12-19T14:21:01.276Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:21:01.278Z] [DEBUG] Status: 200, StatusText: OK, Duration: 38371ms
+[2025-12-19T14:21:01.281Z] [DEBUG] Extracted content length: 8264 characters
+[2025-12-19T14:21:01.281Z] [DEBUG] executeResearchQuery success - result length: 8264
+[2025-12-19T14:21:12.120Z] [DEBUG] ========== PERPLEXITY API RESPONSE RECEIVED ==========
+[2025-12-19T14:21:12.122Z] [DEBUG] Status: 200, StatusText: OK, Duration: 49214ms
+[2025-12-19T14:21:12.197Z] [DEBUG] Extracted content length: 10923 characters
+[2025-12-19T14:21:12.197Z] [DEBUG] executeResearchQuery success - result length: 10923

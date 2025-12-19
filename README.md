@@ -1,5 +1,31 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+Configure the following environment variables:
+
+```bash
+# Research Provider: 'perplexity' or 'openai' (default: 'perplexity')
+RESEARCH_PROVIDER=perplexity
+
+# Required for Perplexity provider
+PPLX_API_KEY=your_perplexity_api_key
+
+# Required for OpenAI provider (and always used for data extraction)
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### Research Provider Configuration
+
+The application supports two research providers for deep research functionality:
+
+- **Perplexity** (default): Uses Perplexity's `sonar-deep-research` model. Requires `PPLX_API_KEY`.
+- **OpenAI**: Uses OpenAI models with automatic fallback (`o3-deep-research` → `gpt-4o`). Requires `OPENAI_API_KEY`.
+
+To switch providers, set the `RESEARCH_PROVIDER` environment variable to either `perplexity` or `openai`. The default is `perplexity` for backward compatibility.
+
+**Note:** `OPENAI_API_KEY` is always required as it's used for data extraction and analysis regardless of the research provider selected.
+
 ## Getting Started
 
 First, run the development server:

@@ -20,9 +20,6 @@ model Cluster {
 
   // Strategic & Metadata Fields
   strategicNotes            String?
-  clusterWideIdentitySystem String?
-  governanceCoordination   String?
-  networkEffectIndicators   String?
 }
 
 model Port {
@@ -33,23 +30,22 @@ model Port {
   cluster     Cluster    @relation(fields: [clusterId], references: [id], onDelete: Cascade)
   description String?
   terminals   Terminal[]
+  terminalProposals TerminalProposal[]
+
+  // Location Fields
+  latitude    Float?
+  longitude  Float?
 
   // Governance Fields
   portAuthority    String?
-  customsAuthority String?
 
   // Identity System Fields
-  portWideIdentitySystem String?  // e.g., "AlfaPass", "CargoCard", "Local Badge System"
   identityCompetitors     String?  // Stored as JSON string array
   identityAdoptionRate    String? // e.g., "High", "Medium", "Low", "None", or percentage "60%"
 
   // ISPS Risk Fields
   portLevelISPSRisk      String?  // "Low", "Medium", "High", "Very High"
   ispsEnforcementStrength String?  // "Weak", "Moderate", "Strong", "Very Strong"
-
-  // System Landscape Fields
-  dominantTOSSystems String?  // Stored as JSON string array
-  dominantACSSystems String?  // Stored as JSON string array
 
   // Strategic Notes
   strategicNotes String?
@@ -69,14 +65,45 @@ model Terminal {
   longitude               Float
   cargoTypes              String // Stored as JSON string
   capacity                String?
-  ispsRiskLevel           String?
   notes                   String?
 
   // Deep Research Fields
   operatorGroup           String?
-  ownership               String?
   
   lastDeepResearchAt      DateTime?
   lastDeepResearchSummary String?
   lastDeepResearchReport  String?
+}
+
+model ResearchJob {
+  id            String   @id @default(uuid())
+  type          String   // "port" | "terminal"
+  entityId      String   // port.id or terminal.id
+  clusterId     String?  // For tracking pipeline context
+  status        String   // "pending" | "running" | "completed" | "failed" | "cancelled"
+  progress      Int      @default(0)
+  error         String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  lastHeartbeat DateTime?  // Track when job last reported activity
+
+  @@index([status, type])
+  @@index([clusterId])
+  @@index([lastHeartbeat])
+}
+
+model TerminalProposal {
+  id            String   @id @default(uuid())
+  portId        String
+  port          Port      @relation(fields: [portId], references: [id], onDelete: Cascade)
+  name          String
+  latitude      Float?
+  longitude     Float?
+  status        String   // "pending" | "approved" | "rejected"
+  createdAt     DateTime @default(now())
+  approvedAt    DateTime?
+
+  @@index([portId, status])
+  @@index([status])
 }

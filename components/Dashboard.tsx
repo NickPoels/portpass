@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import * as DBActions from "@/app/actions";
-import { Terminal, Cluster, Port, ClusterId } from "@/lib/types";
+import { Terminal, Cluster, Port, ClusterId, TerminalProposal } from "@/lib/types";
 import dynamic from "next/dynamic";
 import toast from "react-hot-toast";
 import { FilterPanel } from "./Sidebar/FilterPanel";
@@ -11,6 +11,7 @@ import { TerminalList } from "./Sidebar/TerminalList";
 import { TerminalDetail } from "./Sidebar/TerminalDetail";
 import { ClusterDetail } from "./Sidebar/ClusterDetail";
 import { PortDetail } from "./Sidebar/PortDetail";
+import { DataQualityPanel } from "./Sidebar/DataQualityPanel";
 
 // Dynamic import for Map to avoid SSR
 const MapView = dynamic(() => import("./Map/MapView"), { ssr: false });
@@ -25,23 +26,16 @@ type Selection =
     | { type: "terminal", id: string }
     | { type: "port", id: string }
     | { type: "cluster", id: string }
+    | { type: "proposals", clusterId?: string, portId?: string }
+    | { type: "data-quality" }
     | null;
 
 export default function Dashboard({ initialTerminals, ports, clusters }: DashboardProps) {
-    // #region agent log
-    if (typeof window !== 'undefined') {
-      console.log('[Dashboard] Rendering with:', {
-        terminalsCount: initialTerminals.length,
-        portsCount: ports.length,
-        clustersCount: clusters.length,
-        firstPortKeys: ports[0] ? Object.keys(ports[0]) : [],
-        firstTerminalKeys: initialTerminals[0] ? Object.keys(initialTerminals[0]) : []
-      });
-    }
-    // #endregion
     const [terminals, setTerminals] = useState<Terminal[]>(initialTerminals);
     const [userPorts, setUserPorts] = useState<Port[]>(ports);
     const [userClusters, setUserClusters] = useState<Cluster[]>(clusters);
+    const [proposalsForMap, setProposalsForMap] = useState<TerminalProposal[]>([]);
+    const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
 
     const [selection, setSelection] = useState<Selection>(null);
 
@@ -142,7 +136,6 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
             longitude: defaultLng,
             cargoTypes: [],
             capacity: "Unknown",
-            ispsRiskLevel: "Low",
             notes: ""
         };
         setTerminals(prev => [...prev, newTerminal]);
@@ -341,6 +334,14 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
         return base;
     }, [filteredTerminals, selection, userPorts]);
 
+    // Filtered Proposals for Map (only show proposals for selected port)
+    const mapProposals = useMemo(() => {
+        if (selection?.type === "port") {
+            return proposalsForMap.filter(p => p.portId === selection.id);
+        }
+        return [];
+    }, [proposalsForMap, selection]);
+
     const handleClearSelection = () => {
         setSelection(null);
     };
@@ -369,43 +370,14 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
 
     return (
         <div className="flex h-screen w-full overflow-hidden bg-white">
-            {/* Left Sidebar: Lean Action Bar */}
-            <div className="w-60 flex-shrink-0 flex flex-col border-r border-gray-200 bg-gray-50 z-20 shadow-sm">
+            {/* Left Sidebar: Logo + All Functionality */}
+            <div className="w-96 flex-shrink-0 flex flex-col border-r border-gray-200 bg-white z-20 shadow-lg">
+                {/* Logo Section */}
                 <div className="p-4 border-b bg-white">
-                    {/* <h1 className="text-xl font-bold text-slate-800">PortPass</h1> */}
                     <img src="/brand/logo.png" alt="PortPass Logo" className="h-8 object-contain" />
                     <p className="text-xs text-slate-500 mt-1 font-clash">Identity Layer v1.2</p>
                 </div>
 
-                <div className="flex-1 w-full p-4">
-                    <p className="text-sm text-gray-500 italic">Select an item from the tree on the right to view details.</p>
-                </div>
-
-                <ActionPanel
-                    onAddCluster={handleCreateNewCluster}
-                    onAddPort={handleCreateNewPort}
-                    onAddTerminal={handleCreateNewTerminal}
-                />
-            </div>
-
-            {/* Center: Map */}
-            <div className="flex-1 relative">
-                <MapView
-                    terminals={mapTerminals}
-                    ports={userPorts}
-                    clusters={userClusters}
-                    selectedClusterId={selectedClusterId === "ALL" ? undefined : selectedClusterId}
-                    zoomToClusterId={zoomToClusterId}
-                    zoomToPortId={zoomToPortId}
-                    zoomToTerminalId={zoomToTerminalId}
-                    onSelectTerminal={(id) => setSelection({ type: "terminal", id })}
-                    onClearSelection={handleClearSelection}
-                    hasActiveFilter={selection?.type === "port" || selection?.type === "cluster"}
-                />
-            </div>
-
-            {/* Right Sidebar: Master-Detail (Tree vs Details) */}
-            <div className="w-96 flex-shrink-0 border-l border-gray-200 bg-white z-20 shadow-lg flex flex-col overflow-y-auto">
                 {selection === null ? (
                     /* Master View: Filter & Tree */
                     <>
@@ -428,10 +400,17 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                                 onZoomToCluster={handleZoomToCluster}
                             />
                         </div>
+                        <ActionPanel
+                            onAddCluster={handleCreateNewCluster}
+                            onAddPort={handleCreateNewPort}
+                            onAddTerminal={handleCreateNewTerminal}
+                            onViewProposals={() => setSelection({ type: "proposals" })}
+                            onDataQualityCheck={() => setSelection({ type: "data-quality" })}
+                        />
                     </>
                 ) : (
                     /* Detail Views */
-                    <>
+                    <div className="flex-1 overflow-y-auto">
                         {selectedTerminal && (
                             <TerminalDetail
                                 terminal={selectedTerminal}
@@ -450,6 +429,8 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                                 onClose={() => setSelection(null)}
                                 onUpdate={handleUpdatePort}
                                 onDelete={() => handleDeletePort(selectedPort.id)}
+                                onProposalsChange={setProposalsForMap}
+                                selectedProposalId={selectedProposalId}
                             />
                         )}
 
@@ -461,8 +442,47 @@ export default function Dashboard({ initialTerminals, ports, clusters }: Dashboa
                                 onDelete={() => handleDeleteCluster(selectedCluster.id)}
                             />
                         )}
-                    </>
+
+                        {selection?.type === "proposals" && (
+                            <div className="flex flex-col h-full bg-white shadow-xl">
+                                <div className="px-4 py-3 border-b flex items-center justify-between bg-gray-50">
+                                    <h2 className="text-lg font-bold text-gray-900">Terminal Proposals</h2>
+                                    <button onClick={() => setSelection(null)} className="p-1.5 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200">
+                                        <span>×</span>
+                                    </button>
+                                </div>
+                                <div className="flex-1 flex items-center justify-center p-8">
+                                    <div className="text-center">
+                                        <p className="text-gray-500 text-sm">Terminal proposals are now managed at the port level.</p>
+                                        <p className="text-gray-400 text-xs mt-2">Open a port to find and approve terminals.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {selection?.type === "data-quality" && (
+                            <DataQualityPanel onClose={() => setSelection(null)} />
+                        )}
+                    </div>
                 )}
+            </div>
+
+            {/* Center: Map */}
+            <div className="flex-1 relative">
+                <MapView
+                    terminals={mapTerminals}
+                    ports={userPorts}
+                    clusters={userClusters}
+                    proposals={mapProposals}
+                    selectedClusterId={selectedClusterId === "ALL" ? undefined : selectedClusterId}
+                    zoomToClusterId={zoomToClusterId}
+                    zoomToPortId={zoomToPortId}
+                    zoomToTerminalId={zoomToTerminalId}
+                    onSelectTerminal={(id) => setSelection({ type: "terminal", id })}
+                    onSelectProposal={(id) => setSelectedProposalId(id)}
+                    onClearSelection={handleClearSelection}
+                    hasActiveFilter={selection?.type === "port" || selection?.type === "cluster"}
+                />
             </div>
         </div>
     );

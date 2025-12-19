@@ -13,15 +13,8 @@ async function main() {
         // Need to serialize 'countries' array to string as per schema
         const countriesStr = JSON.stringify(cluster.countries || []);
 
-        await prisma.cluster.upsert({
-            where: { id: cluster.id },
-            update: {
-                name: cluster.name,
-                countries: countriesStr,
-                priorityTier: cluster.priorityTier,
-                description: cluster.description,
-            },
-            create: {
+        await prisma.cluster.create({
+            data: {
                 id: cluster.id,
                 name: cluster.name,
                 countries: countriesStr,
@@ -34,15 +27,8 @@ async function main() {
 
     // 2. Seed Ports
     for (const port of portsData) {
-        await prisma.port.upsert({
-            where: { id: port.id },
-            update: {
-                name: port.name,
-                country: port.country,
-                clusterId: port.clusterId,
-                description: port.description,
-            },
-            create: {
+        await prisma.port.create({
+            data: {
                 id: port.id,
                 name: port.name,
                 country: port.country,
@@ -59,23 +45,8 @@ async function main() {
         // Need to serialize 'cargoTypes' array to string
         const cargoTypesStr = JSON.stringify(terminal.cargoTypes || []);
 
-        await prisma.terminal.upsert({
-            where: { id: terminal.id },
-            update: {
-                name: terminal.name,
-                portId: terminal.portId,
-                latitude: terminal.latitude,
-                longitude: terminal.longitude,
-                cargoTypes: cargoTypesStr,
-                capacity: terminal.capacity,
-                ispsRiskLevel: terminal.ispsRiskLevel,
-                notes: terminal.notes,
-                operatorGroup: terminal.operatorGroup,
-                ownership: terminal.ownership,
-                lastDeepResearchAt: terminal.lastDeepResearchAt ? new Date(terminal.lastDeepResearchAt) : null,
-                lastDeepResearchSummary: terminal.lastDeepResearchSummary,
-            },
-            create: {
+        await prisma.terminal.create({
+            data: {
                 id: terminal.id,
                 name: terminal.name,
                 portId: terminal.portId,
@@ -83,10 +54,8 @@ async function main() {
                 longitude: terminal.longitude,
                 cargoTypes: cargoTypesStr,
                 capacity: terminal.capacity,
-                ispsRiskLevel: terminal.ispsRiskLevel,
                 notes: terminal.notes,
                 operatorGroup: terminal.operatorGroup,
-                ownership: terminal.ownership,
                 lastDeepResearchAt: terminal.lastDeepResearchAt ? new Date(terminal.lastDeepResearchAt) : null,
                 lastDeepResearchSummary: terminal.lastDeepResearchSummary,
             },

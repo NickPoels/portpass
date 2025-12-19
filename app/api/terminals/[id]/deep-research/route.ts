@@ -1,6 +1,13 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
+import { executeResearchQuery, getResearchProvider } from '@/lib/research-provider';
+import {
+    validateOperatorGroup,
+    validateCapacity,
+    validateCargoTypes,
+    validateCoordinates
+} from '@/lib/field-validation';
 
 // Force node runtime for network calls and streaming
 export const runtime = 'nodejs';
@@ -13,23 +20,35 @@ export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    // Validate environment variables early
+    // Validate environment variables early - provider-aware
+    const provider = getResearchProvider();
     if (!process.env.OPENAI_API_KEY) {
         return new Response(JSON.stringify({ 
             error: 'OPENAI_API_KEY not configured',
             category: 'API_ERROR',
-            message: 'Research service is not properly configured. Please contact support.',
+            message: 'OpenAI API key is required for data extraction and analysis. Please configure OPENAI_API_KEY.',
             retryable: false
         }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });
     }
-    if (!process.env.PPLX_API_KEY) {
+    if (provider === 'perplexity' && !process.env.PPLX_API_KEY) {
         return new Response(JSON.stringify({ 
             error: 'PPLX_API_KEY not configured',
             category: 'API_ERROR',
-            message: 'Research service is not properly configured. Please contact support.',
+            message: 'Perplexity API key is required when RESEARCH_PROVIDER=perplexity. Please configure PPLX_API_KEY or set RESEARCH_PROVIDER=openai.',
+            retryable: false
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+    if (provider === 'openai' && !process.env.OPENAI_API_KEY) {
+        return new Response(JSON.stringify({ 
+            error: 'OPENAI_API_KEY not configured',
+            category: 'API_ERROR',
+            message: 'OpenAI API key is required when RESEARCH_PROVIDER=openai. Please configure OPENAI_API_KEY.',
             retryable: false
         }), {
             status: 500,
@@ -42,6 +61,34 @@ export async function POST(
     });
 
     const terminalId = params.id;
+    
+    // Check if running in background mode (ignore abort signals)
+    const url = new URL(request.url);
+    const isBackgroundMode = url.searchParams.get('background') === 'true' || 
+                             request.headers.get('X-Background-Mode') === 'true';
+    
+    // Per-query timeout for research queries (2.5 minutes per query)
+    const RESEARCH_QUERY_TIMEOUT_MS = 2.5 * 60 * 1000; // 2.5 minutes
+    
+    /**
+     * Create a timeout-based abort signal for background mode queries
+     * This ensures individual research queries don't hang indefinitely
+     */
+    function createQueryTimeoutSignal(): AbortSignal {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, RESEARCH_QUERY_TIMEOUT_MS);
+        
+        // Store timeout ID on the signal for potential cleanup
+        (controller.signal as any)._timeoutId = timeoutId;
+        
+        return controller.signal;
+    }
+    
+    // Create a no-op abort signal for background mode (never aborts) - only used for non-query operations
+    const noOpAbortController = new AbortController();
+    const backgroundAbortSignal = noOpAbortController.signal;
 
     // 1. Validate Terminal
     const terminal = await prisma.terminal.findUnique({
@@ -66,61 +113,18 @@ export async function POST(
                 );
             };
 
-            // Check for abort signal
-            const abortSignal = request.signal;
-            
-            // Helper function to execute Perplexity query
-            const executePerplexityQuery = async (query: string, queryName: string): Promise<{ content: string; sources: string[] }> => {
-                if (abortSignal.aborted) {
-                    throw new Error('Request aborted');
+            // Helper to get abort signal for research queries
+            // In background mode, create a timeout-based signal for each query to prevent hangs
+            // In normal mode, use the request signal
+            const getQueryAbortSignal = () => {
+                if (isBackgroundMode) {
+                    return createQueryTimeoutSignal();
                 }
-
-                const pplxRes = await fetch('https://api.perplexity.ai/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${process.env.PPLX_API_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        model: 'sonar-deep-research',
-                        messages: [
-                            { role: 'system', content: 'You are a maritime research assistant. Always cite your sources.' },
-                            { role: 'user', content: query },
-                        ],
-                        temperature: 0.1,
-                    }),
-                    signal: abortSignal,
-                });
-
-                if (!pplxRes.ok) {
-                    const errorCategory = pplxRes.status >= 500 ? 'API_ERROR' : 'NETWORK_ERROR';
-                    throw { 
-                        category: errorCategory,
-                        message: `Research service temporarily unavailable. Please try again in a moment.`,
-                        originalError: `Perplexity API error: ${pplxRes.statusText}`,
-                        retryable: true
-                    };
-                }
-
-                if (abortSignal.aborted) {
-                    throw new Error('Request aborted');
-                }
-
-                const pplxJson = await pplxRes.json();
-                const content = pplxJson.choices[0]?.message?.content || '';
-                
-                // Extract sources from citations (Perplexity often includes [1], [2] etc.)
-                const sources: string[] = [];
-                const citationRegex = /\[(\d+)\]/g;
-                const matches = content.match(citationRegex);
-                if (matches) {
-                    // Try to extract source URLs or names from the response
-                    // This is a simplified extraction - Perplexity's actual source format may vary
-                    sources.push(...matches.map((_, i) => `Source ${i + 1}`));
-                }
-
-                return { content, sources };
+                return request.signal;
             };
+            
+            // Use no-op abort signal for non-query operations in background mode
+            const abortSignal = isBackgroundMode ? backgroundAbortSignal : request.signal;
 
             // Confidence scoring function
             const calculateConfidence = (content: string, sources: string[]): number => {
@@ -173,75 +177,140 @@ export async function POST(
                 }
 
                 // --- STEP 2: MULTI-QUERY RESEARCH ---
-                const researchQueries: Array<{ query: string; result: string; sources: string[] }> = [];
+                const researchQueries: Array<{ query: string; result: string; sources: string[]; queryType: string }> = [];
                 
-                // Query 1: Identity & Location
-                sendEvent('status', { message: 'Querying identity and location...', step: 'query_1', progress: 20 });
-                try {
-                    const query1 = `What is the exact location (latitude, longitude) of ${terminal.name} in ${terminal.port.name}, ${terminal.port.country}? Is ${terminal.name} located in ${terminal.port.name} or a different port?`;
-                    const result1 = await executePerplexityQuery(query1, 'identity_location');
-                    researchQueries.push({ query: query1, result: result1.content, sources: result1.sources });
-                    sendEvent('status', { message: 'Analyzing location data...', step: 'query_1_analysis', progress: 25 });
-                } catch (e) {
-                    sendEvent('status', { message: 'Warning: Location query failed, continuing...', step: 'query_1', progress: 25, details: 'Continuing with available data' });
+                // Execute queries 1-2 in parallel for maximum speed
+                sendEvent('status', { message: 'Querying identity, location, and capacity...', step: 'parallel_queries', progress: 20 });
+                
+                // Optimized queries - focused and concise
+                const query1 = `Find the exact location (latitude, longitude) of ${terminal.name} in ${terminal.port.name}, ${terminal.port.country}. Confirm if ${terminal.name} is located in ${terminal.port.name} or a different port. Cite sources.`;
+                const query2 = `Research the annual capacity (TEU or tonnage) and cargo types handled by ${terminal.name}. Include specific cargo categories. Cite sources.`;
+                
+                const parallelStart = Date.now();
+                const [result1, result2] = await Promise.allSettled([
+                    (async () => {
+                        const res = await executeResearchQuery(query1, 'identity_location', getQueryAbortSignal());
+                        console.log(`[Deep Research] ${terminal.name} - Location query completed`);
+                        return { query: query1, result: res.content, sources: res.sources, name: 'identity_location' };
+                    })(),
+                    (async () => {
+                        const res = await executeResearchQuery(query2, 'capacity_operations', getQueryAbortSignal());
+                        console.log(`[Deep Research] ${terminal.name} - Capacity query completed`);
+                        return { query: query2, result: res.content, sources: res.sources, name: 'capacity_operations' };
+                    })()
+                ]);
+                
+                const parallelDuration = ((Date.now() - parallelStart) / 1000).toFixed(1);
+                console.log(`[Deep Research] ${terminal.name} - All parallel queries completed in ${parallelDuration}s`);
+                
+                // Process results and track failed queries for retry
+                const failedQueries: Array<{ query: string; queryType: string; error: any; retryable: boolean }> = [];
+                
+                if (result1.status === 'fulfilled') {
+                    researchQueries.push({ query: result1.value.query, result: result1.value.result, sources: result1.value.sources, queryType: 'identity_location' });
+                } else {
+                    const error = result1.reason;
+                    const errorMsg = error instanceof Error ? error.message : String(error);
+                    const isTimeout = errorMsg.includes('aborted') || errorMsg.includes('timeout') || errorMsg.includes('AbortError');
+                    const isRetryable = !isTimeout && (typeof error === 'object' && error !== null && 'retryable' in error ? error.retryable : true) && !errorMsg.includes('401');
+                    
+                    if (isTimeout) {
+                        console.error(`[Deep Research] ${terminal.name} - Location query TIMEOUT after ${RESEARCH_QUERY_TIMEOUT_MS / 1000}s: ${errorMsg}`);
+                    } else {
+                        console.warn(`[Deep Research] ${terminal.name} - Location query failed: ${errorMsg}`, error);
+                        if (isRetryable) {
+                            failedQueries.push({ query: query1, queryType: 'identity_location', error, retryable: true });
+                        }
+                    }
                 }
-
-                // Query 2: Capacity & Operations
-                sendEvent('status', { message: 'Querying capacity and operations...', step: 'query_2', progress: 40 });
-                try {
-                    const query2 = `What is the annual capacity in TEU or tonnage of ${terminal.name}? What specific cargo types does ${terminal.name} handle?`;
-                    const result2 = await executePerplexityQuery(query2, 'capacity_operations');
-                    researchQueries.push({ query: query2, result: result2.content, sources: result2.sources });
-                    sendEvent('status', { message: 'Analyzing capacity data...', step: 'query_2_analysis', progress: 45 });
-                } catch (e) {
-                    sendEvent('status', { message: 'Warning: Capacity query failed, continuing...', step: 'query_2', progress: 45, details: 'Continuing with available data' });
+                
+                if (result2.status === 'fulfilled') {
+                    researchQueries.push({ query: result2.value.query, result: result2.value.result, sources: result2.value.sources, queryType: 'capacity_operations' });
+                } else {
+                    const error = result2.reason;
+                    const errorMsg = error instanceof Error ? error.message : String(error);
+                    const isTimeout = errorMsg.includes('aborted') || errorMsg.includes('timeout') || errorMsg.includes('AbortError');
+                    const isRetryable = !isTimeout && (typeof error === 'object' && error !== null && 'retryable' in error ? error.retryable : true) && !errorMsg.includes('401');
+                    
+                    if (isTimeout) {
+                        console.error(`[Deep Research] ${terminal.name} - Capacity query TIMEOUT after ${RESEARCH_QUERY_TIMEOUT_MS / 1000}s: ${errorMsg}`);
+                    } else {
+                        console.warn(`[Deep Research] ${terminal.name} - Capacity query failed: ${errorMsg}`, error);
+                        if (isRetryable) {
+                            failedQueries.push({ query: query2, queryType: 'capacity_operations', error, retryable: true });
+                        }
+                    }
                 }
-
-                // Query 3: Ownership & Management
-                sendEvent('status', { message: 'Querying ownership and management...', step: 'query_3', progress: 60 });
-                try {
-                    const currentOperator = terminal.operatorGroup || 'unknown operator';
-                    const query3 = `Who operates ${terminal.name}? What is the ownership structure? Is ${terminal.name} owned by ${currentOperator} or a different company?`;
-                    const result3 = await executePerplexityQuery(query3, 'ownership_management');
-                    researchQueries.push({ query: query3, result: result3.content, sources: result3.sources });
-                    sendEvent('status', { message: 'Analyzing ownership data...', step: 'query_3_analysis', progress: 65 });
-                } catch (e) {
-                    sendEvent('status', { message: 'Warning: Ownership query failed, continuing...', step: 'query_3', progress: 65, details: 'Continuing with available data' });
+                
+                // Retry failed queries (one retry per query with 2s delay)
+                if (failedQueries.length > 0) {
+                    console.log(`[Deep Research] ${terminal.name} - Retrying ${failedQueries.length} failed query/queries after 2s delay...`);
+                    sendEvent('status', { message: `Retrying ${failedQueries.length} failed query/queries...`, step: 'retry_queries', progress: 65 });
+                    
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+                    
+                    for (const failedQuery of failedQueries) {
+                        try {
+                            console.log(`[Deep Research] ${terminal.name} - Retrying ${failedQuery.queryType} query...`);
+                            const retryStart = Date.now();
+                            const retryRes = await executeResearchQuery(failedQuery.query, failedQuery.queryType, getQueryAbortSignal());
+                            const retryDuration = ((Date.now() - retryStart) / 1000).toFixed(1);
+                            console.log(`[Deep Research] ${terminal.name} - ${failedQuery.queryType} query RETRY SUCCESS (${retryDuration}s)`);
+                            researchQueries.push({ 
+                                query: failedQuery.query, 
+                                result: retryRes.content, 
+                                sources: retryRes.sources, 
+                                queryType: failedQuery.queryType 
+                            });
+                        } catch (retryError: any) {
+                            const retryErrorMsg = retryError instanceof Error ? retryError.message : String(retryError);
+                            console.error(`[Deep Research] ${terminal.name} - ${failedQuery.queryType} query RETRY FAILED: ${retryErrorMsg}`, retryError);
+                        }
+                    }
                 }
+                
+                console.log(`[Deep Research] ${terminal.name} - Research queries complete. ${researchQueries.length}/2 successful. [70%]`);
+                sendEvent('status', { message: `Research complete. ${researchQueries.length}/2 queries successful.`, step: 'queries_complete', progress: 70 });
 
-                // Query 4: Security & Compliance
-                sendEvent('status', { message: 'Querying security and compliance...', step: 'query_4', progress: 80 });
-                try {
-                    const query4 = `What is the ISPS security level of ${terminal.name}? Has ${terminal.name} had any security incidents or compliance issues?`;
-                    const result4 = await executePerplexityQuery(query4, 'security_compliance');
-                    researchQueries.push({ query: query4, result: result4.content, sources: result4.sources });
-                    sendEvent('status', { message: 'Analyzing security data...', step: 'query_4_analysis', progress: 85 });
-                } catch (e) {
-                    sendEvent('status', { message: 'Warning: Security query failed, continuing...', step: 'query_4', progress: 85, details: 'Continuing with available data' });
-                }
-
-                // Query 5: Verification
-                sendEvent('status', { message: 'Verifying findings...', step: 'query_5', progress: 90 });
-                try {
-                    const allFindings = researchQueries.map(q => q.result).join('\n\n');
-                    const query5 = `Verify the following information about ${terminal.name}:\n\n${allFindings}\n\nPlease confirm accuracy and identify any discrepancies.`;
-                    const result5 = await executePerplexityQuery(query5, 'verification');
-                    researchQueries.push({ query: query5, result: result5.content, sources: result5.sources });
-                } catch (e) {
-                    sendEvent('status', { message: 'Warning: Verification query failed, continuing...', step: 'query_5', progress: 92, details: 'Continuing with available data' });
-                }
-
-                // Combine all research results
-                const researchText = researchQueries.map(q => q.result).join('\n\n---\n\n');
+                // Combine all research results with section headers and query indices
+                const queryTypeToTitle: Record<string, string> = {
+                    'identity_location': '## Location Report',
+                    'capacity_operations': '## Capacity & Operations Report'
+                };
+                
+                const researchText = researchQueries.map((q) => {
+                    const title = queryTypeToTitle[q.queryType] || `## Report`;
+                    return `${title}\n\n${q.result}`;
+                }).join('\n\n---\n\n');
 
                 // --- STEP 3: EXTRACT STRUCTURED DATA ---
-                sendEvent('status', { message: 'Extracting structured data...', step: 'extract', progress: 92 });
+                sendEvent('status', { message: 'Extracting structured data...', step: 'extract', progress: 85 });
                 
-                // Truncate researchText for extract if too long (keep first 8000 chars ~2000 tokens)
-                const extractResearchText = researchText.length > 8000 ? researchText.substring(0, 8000) + '\n\n[... truncated for token limits ...]' : researchText;
+                // Use more context - summarize if too long instead of truncating
+                let extractResearchText = researchText;
+                if (researchText.length > 12000) {
+                    // For very long research, include first 8000 chars and last 2000 chars
+                    extractResearchText = researchText.substring(0, 8000) + '\n\n[... middle section truncated ...]\n\n' + researchText.substring(researchText.length - 2000);
+                } else if (researchText.length > 8000) {
+                    extractResearchText = researchText.substring(0, 8000) + '\n\n[... truncated ...]';
+                }
+                
+                // Build query index map for source attribution
+                const queryIndexMap = researchQueries.map((q, idx) => ({
+                    index: idx,
+                    query: q.query.substring(0, 100) + '...',
+                    title: reportTitles[idx] || `Report ${idx + 1}`
+                }));
                 
                 const extractPrompt = `
-Extract structured data from the research findings below. Return ONLY the data found, use null if not found.
+Extract structured data from the research findings below. For each field you extract, provide:
+1. The extracted value
+2. Your confidence in the extraction (0.0 to 1.0, where 1.0 = explicit mention, 0.5 = inferred, 0.3 = partial/uncertain)
+3. Which research query/queries provided this information (use query indices: 0=Location, 1=Capacity & Operations)
+4. Quality indicator: "explicit" (directly stated), "inferred" (logically derived), or "partial" (incomplete/uncertain)
+
+RESEARCH QUERIES:
+${queryIndexMap.map(q => `Query ${q.index} (${q.title}): ${q.query}`).join('\n')}
 
 RESEARCH FINDINGS:
 ${extractResearchText}
@@ -250,22 +319,50 @@ CURRENT TERMINAL DATA:
 - Name: ${terminal.name}
 - Port: ${terminal.port.name} (${terminal.port.country})
 - Operator: ${terminal.operatorGroup || 'unknown'}
-- Ownership: ${terminal.ownership || 'unknown'}
 - Capacity: ${terminal.capacity || 'unknown'}
-- ISPS Level: ${terminal.ispsRiskLevel || 'unknown'}
 - Cargo Types: ${typeof terminal.cargoTypes === 'string' ? terminal.cargoTypes : JSON.stringify(terminal.cargoTypes)}
 - Coordinates: ${terminal.latitude}, ${terminal.longitude}
 
-Return JSON:
+Return JSON with this structure:
 {
-  "operator_group": "string | null",
-  "ownership": "string | null",
-  "cargo_types": ["string"] | null,
-  "isps_level": "Low | Medium | High | Very High | null",
-  "capacity": "string | null",
-  "suggested_port_name": "string | null",
-  "new_coordinates": { "lat": number, "lon": number } | null
+  "operator_group": {
+    "value": "string | null",
+    "confidence": 0.0-1.0,
+    "sources": [0, 1],  // Array of query indices
+    "quality": "explicit | inferred | partial"
+  },
+  "cargo_types": {
+    "value": ["Container", "RoRo", "Dry Bulk", "Liquid Bulk", "Break Bulk", "Multipurpose", "Passenger/Ferry"] | null,
+    "confidence": 0.0-1.0,
+    "sources": [1],
+    "quality": "explicit | inferred | partial"
+  },
+  "capacity": {
+    "value": "string | null",
+    "confidence": 0.0-1.0,
+    "sources": [1],
+    "quality": "explicit | inferred | partial"
+  },
+  "suggested_port_name": {
+    "value": "string | null",
+    "confidence": 0.0-1.0,
+    "sources": [0],
+    "quality": "explicit | inferred | partial"
+  },
+  "new_coordinates": {
+    "value": { "lat": number, "lon": number } | null,
+    "confidence": 0.0-1.0,
+    "sources": [0],
+    "quality": "explicit | inferred | partial"
+  }
 }
+
+IMPORTANT:
+- Use null for value if the field is not found in the research
+- Confidence should reflect how certain you are about the extraction
+- Sources should list all query indices (0-1) that mention this information
+- Quality should indicate how the information was found
+- For cargo_types, use only valid values: Container, RoRo, Dry Bulk, Liquid Bulk, Break Bulk, Multipurpose, Passenger/Ferry
 `;
 
                 let extractRes;
@@ -303,57 +400,209 @@ Return JSON:
                     };
                 }
 
-                // --- STEP 4: CALCULATE CONFIDENCE SCORES ---
+                // --- STEP 3.5: NORMALIZE EXTRACTED DATA STRUCTURE ---
+                // Handle both old format (simple values) and new format (objects with confidence)
+                const normalizedExtractedData: any = {};
+                const llmConfidences: Record<string, number> = {};
+                const fieldSources: Record<string, number[]> = {};
+                const fieldQualities: Record<string, 'explicit' | 'inferred' | 'partial'> = {};
+                
+                const fieldMappings: Record<string, string> = {
+                    'operator_group': 'operatorGroup',
+                    'cargo_types': 'cargoTypes',
+                    'capacity': 'capacity',
+                    'suggested_port_name': 'portId',
+                    'new_coordinates': 'coordinates'
+                };
+                
+                for (const [key, mappedKey] of Object.entries(fieldMappings)) {
+                    const rawValue = extractedData[key];
+                    
+                    if (rawValue === null || rawValue === undefined) {
+                        normalizedExtractedData[key] = null;
+                        continue;
+                    }
+                    
+                    // Check if new format (object with value, confidence, sources, quality)
+                    if (typeof rawValue === 'object' && !Array.isArray(rawValue) && 'value' in rawValue) {
+                        normalizedExtractedData[key] = rawValue.value;
+                        llmConfidences[mappedKey] = Math.max(0, Math.min(1, rawValue.confidence || 0.5));
+                        fieldSources[mappedKey] = Array.isArray(rawValue.sources) ? rawValue.sources : [];
+                        if (rawValue.quality && ['explicit', 'inferred', 'partial'].includes(rawValue.quality)) {
+                            fieldQualities[mappedKey] = rawValue.quality;
+                        }
+                    } else {
+                        // Old format - simple value
+                        normalizedExtractedData[key] = rawValue;
+                        llmConfidences[mappedKey] = 0.5; // Default confidence
+                        fieldSources[mappedKey] = []; // No source attribution
+                    }
+                }
+
+                // --- STEP 4: CALCULATE COMBINED CONFIDENCE SCORES ---
                 sendEvent('status', { message: 'Calculating confidence scores...', step: 'confidence', progress: 92 });
                 
-                // Calculate confidence for each field based on research results
                 const fieldConfidences: Record<string, number> = {};
                 const allSources = researchQueries.flatMap(q => q.sources);
                 
-                if (extractedData.operator_group) {
-                    fieldConfidences.operatorGroup = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('operates') || q.query.includes('ownership'))?.result || '',
-                        allSources
-                    );
-                }
-                if (extractedData.ownership) {
-                    fieldConfidences.ownership = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('ownership'))?.result || '',
-                        allSources
-                    );
-                }
-                if (extractedData.capacity) {
-                    fieldConfidences.capacity = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('capacity'))?.result || '',
-                        allSources
-                    );
-                }
-                if (extractedData.isps_level) {
-                    fieldConfidences.ispsRiskLevel = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('ISPS') || q.query.includes('security'))?.result || '',
-                        allSources
-                    );
-                }
-                if (extractedData.cargo_types) {
-                    fieldConfidences.cargoTypes = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('cargo'))?.result || '',
-                        allSources
-                    );
-                }
-                if (extractedData.new_coordinates) {
-                    fieldConfidences.coordinates = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('location') || q.query.includes('latitude'))?.result || '',
-                        allSources
-                    );
-                }
-                if (extractedData.suggested_port_name) {
-                    fieldConfidences.portId = calculateConfidence(
-                        researchQueries.find(q => q.query.includes('port'))?.result || '',
-                        allSources
-                    );
+                // Combine LLM confidence with heuristic confidence
+                const getHeuristicConfidence = (fieldKey: string, queryIndices: number[]): number => {
+                    if (queryIndices.length === 0) {
+                        // Fallback to old method if no sources provided
+                        let relevantResult = '';
+                        if (fieldKey === 'operatorGroup') {
+                            relevantResult = researchQueries.find(q => q.query.includes('operates'))?.result || '';
+                        } else if (fieldKey === 'capacity' || fieldKey === 'cargoTypes') {
+                            relevantResult = researchQueries.find(q => q.query.includes('capacity') || q.query.includes('cargo'))?.result || '';
+                        } else if (fieldKey === 'coordinates') {
+                            relevantResult = researchQueries.find(q => q.query.includes('location') || q.query.includes('latitude'))?.result || '';
+                        } else if (fieldKey === 'portId') {
+                            relevantResult = researchQueries.find(q => q.query.includes('port'))?.result || '';
+                        }
+                        
+                        const relevantSources = researchQueries
+                            .filter((q, idx) => q.query.includes(fieldKey.toLowerCase()) || relevantResult.includes(q.result))
+                            .flatMap(q => q.sources);
+                        
+                        return calculateConfidence(relevantResult, relevantSources);
+                    }
+                    
+                    // Use sources from LLM
+                    const relevantQueries = researchQueries.filter((_, idx) => queryIndices.includes(idx));
+                    const relevantResult = relevantQueries.map(q => q.result).join('\n\n');
+                    const relevantSources = relevantQueries.flatMap(q => q.sources);
+                    
+                    return calculateConfidence(relevantResult, relevantSources);
+                };
+                
+                // Calculate combined confidence for each field
+                for (const [key, mappedKey] of Object.entries(fieldMappings)) {
+                    if (normalizedExtractedData[key] !== null && normalizedExtractedData[key] !== undefined) {
+                        const llmConf = llmConfidences[mappedKey] || 0.5;
+                        const heuristicConf = getHeuristicConfidence(mappedKey, fieldSources[mappedKey] || []);
+                        
+                        // Weighted average: 60% LLM confidence, 40% heuristic
+                        fieldConfidences[mappedKey] = (llmConf * 0.6) + (heuristicConf * 0.4);
+                    }
                 }
 
-                // --- STEP 5: LLM FIELD-BY-FIELD ANALYSIS ---
+                // --- STEP 4.5: VALIDATE EXTRACTED DATA ---
+                sendEvent('status', { message: 'Validating extracted data...', step: 'validate', progress: 92.5 });
+                
+                const validationResults: Record<string, any> = {};
+                const validationErrors: Record<string, string[]> = {};
+                const validationWarnings: Record<string, string[]> = {};
+                
+                // Validate each extracted field
+                if (normalizedExtractedData.operator_group !== null && normalizedExtractedData.operator_group !== undefined) {
+                    const result = validateOperatorGroup(normalizedExtractedData.operator_group);
+                    validationResults.operatorGroup = result;
+                    if (result.errors.length > 0) validationErrors.operatorGroup = result.errors;
+                    if (result.warnings.length > 0) validationWarnings.operatorGroup = result.warnings;
+                    if (result.correctedValue) normalizedExtractedData.operator_group = result.correctedValue;
+                    if (!result.isValid) {
+                        fieldConfidences.operatorGroup = Math.max(0, (fieldConfidences.operatorGroup || 0.5) - 0.2);
+                    }
+                }
+                
+                if (normalizedExtractedData.capacity !== null && normalizedExtractedData.capacity !== undefined) {
+                    const result = validateCapacity(normalizedExtractedData.capacity);
+                    validationResults.capacity = result;
+                    if (result.errors.length > 0) validationErrors.capacity = result.errors;
+                    if (result.warnings.length > 0) validationWarnings.capacity = result.warnings;
+                    if (result.correctedValue) normalizedExtractedData.capacity = result.correctedValue;
+                    if (!result.isValid) {
+                        fieldConfidences.capacity = Math.max(0, (fieldConfidences.capacity || 0.5) - 0.2);
+                    }
+                }
+                
+                if (normalizedExtractedData.cargo_types !== null && normalizedExtractedData.cargo_types !== undefined) {
+                    const result = validateCargoTypes(normalizedExtractedData.cargo_types);
+                    validationResults.cargoTypes = result;
+                    if (result.errors.length > 0) validationErrors.cargoTypes = result.errors;
+                    if (result.warnings.length > 0) validationWarnings.cargoTypes = result.warnings;
+                    if (result.correctedValue) normalizedExtractedData.cargo_types = result.correctedValue;
+                    if (!result.isValid) {
+                        fieldConfidences.cargoTypes = Math.max(0, (fieldConfidences.cargoTypes || 0.5) - 0.2);
+                    }
+                }
+                
+                if (normalizedExtractedData.new_coordinates !== null && normalizedExtractedData.new_coordinates !== undefined) {
+                    const coords = normalizedExtractedData.new_coordinates;
+                    const result = validateCoordinates(coords.lat, coords.lon);
+                    validationResults.coordinates = result;
+                    if (result.errors.length > 0) validationErrors.coordinates = result.errors;
+                    if (result.warnings.length > 0) validationWarnings.coordinates = result.warnings;
+                    if (result.correctedValue) normalizedExtractedData.new_coordinates = result.correctedValue;
+                    if (!result.isValid) {
+                        fieldConfidences.coordinates = Math.max(0, (fieldConfidences.coordinates || 0.5) - 0.2);
+                    }
+                }
+
+                // --- STEP 5: CONFLICT DETECTION ---
+                sendEvent('status', { message: 'Detecting conflicts...', step: 'conflict_detection', progress: 92.7 });
+                
+                // Detect conflicts between research queries
+                const conflictDetectionPrompt = `
+Analyze the research queries below and identify any conflicts or discrepancies in the extracted data.
+
+RESEARCH QUERIES:
+${researchQueries.map((q, idx) => `
+Query ${idx} (${reportTitles[idx] || `Report ${idx + 1}`}):
+${q.query}
+
+Result:
+${q.result.substring(0, 1000)}${q.result.length > 1000 ? '...' : ''}
+`).join('\n---\n')}
+
+EXTRACTED DATA:
+- Operator Group: ${normalizedExtractedData.operator_group || 'null'}
+- Cargo Types: ${JSON.stringify(normalizedExtractedData.cargo_types) || 'null'}
+- Capacity: ${normalizedExtractedData.capacity || 'null'}
+- Suggested Port: ${normalizedExtractedData.suggested_port_name || 'null'}
+- Coordinates: ${normalizedExtractedData.new_coordinates ? `${normalizedExtractedData.new_coordinates.lat}, ${normalizedExtractedData.new_coordinates.lon}` : 'null'}
+
+Identify:
+1. Fields where different queries provide conflicting values
+2. Fields where values are inconsistent across queries
+3. Confidence in each conflicting value
+4. Suggested resolution (if possible)
+
+Return JSON:
+{
+  "conflicts": [
+    {
+      "field": "operator_group | cargo_types | capacity | suggested_port_name | new_coordinates",
+      "conflictingValues": [
+        {
+          "value": "string | object",
+          "sourceQueryIndex": 0,
+          "sourceQueryTitle": "Location Report",
+          "confidence": 0.0-1.0,
+          "evidence": "string - quote from research"
+        }
+      ],
+      "suggestedResolution": "string | null"
+    }
+  ]
+}
+`;
+
+                let conflictData: any = { conflicts: [] };
+                try {
+                    const conflictRes = await openai.chat.completions.create({
+                        model: 'gpt-4o',
+                        messages: [{ role: 'user', content: conflictDetectionPrompt }],
+                        response_format: { type: 'json_object' },
+                        temperature: 0.2,
+                    });
+                    conflictData = JSON.parse(conflictRes.choices[0].message.content || '{"conflicts": []}');
+                } catch (e) {
+                    console.error('Conflict detection failed:', e);
+                    // Continue without conflict data
+                }
+
+                // --- STEP 6: LLM FIELD-BY-FIELD ANALYSIS ---
                 sendEvent('status', { message: 'Analyzing field updates...', step: 'llm_analysis', progress: 95 });
                 
                 interface FieldProposal {
@@ -365,17 +614,26 @@ Return JSON:
                     reasoning: string;
                     sources: string[];
                     updatePriority: "high" | "medium" | "low";
+                    validationErrors?: string[];
+                    validationWarnings?: string[];
+                    conflicts?: Array<{
+                        conflictingValue: any;
+                        sourceQuery: string;
+                        sourceIndex: number;
+                        confidence: number;
+                        evidence?: string;
+                    }>;
+                    hasConflict: boolean;
+                    llmQuality?: 'explicit' | 'inferred' | 'partial';
                 }
 
                 const fieldProposals: FieldProposal[] = [];
                 const fieldsToAnalyze = [
-                    { key: 'operatorGroup', label: 'Operator Group', extracted: extractedData.operator_group, current: terminal.operatorGroup },
-                    { key: 'ownership', label: 'Ownership', extracted: extractedData.ownership, current: terminal.ownership },
-                    { key: 'capacity', label: 'Capacity', extracted: extractedData.capacity, current: terminal.capacity },
-                    { key: 'ispsRiskLevel', label: 'ISPS Risk Level', extracted: extractedData.isps_level, current: terminal.ispsRiskLevel },
-                    { key: 'cargoTypes', label: 'Cargo Types', extracted: extractedData.cargo_types, current: typeof terminal.cargoTypes === 'string' ? JSON.parse(terminal.cargoTypes) : terminal.cargoTypes },
-                    { key: 'coordinates', label: 'Coordinates', extracted: extractedData.new_coordinates, current: { lat: terminal.latitude, lon: terminal.longitude } },
-                    { key: 'portId', label: 'Port', extracted: extractedData.suggested_port_name, current: terminal.port.name },
+                    { key: 'operatorGroup', label: 'Operator Group', extracted: normalizedExtractedData.operator_group, current: terminal.operatorGroup },
+                    { key: 'capacity', label: 'Capacity', extracted: normalizedExtractedData.capacity, current: terminal.capacity },
+                    { key: 'cargoTypes', label: 'Cargo Types', extracted: normalizedExtractedData.cargo_types, current: typeof terminal.cargoTypes === 'string' ? JSON.parse(terminal.cargoTypes) : terminal.cargoTypes },
+                    { key: 'coordinates', label: 'Coordinates', extracted: normalizedExtractedData.new_coordinates, current: { lat: terminal.latitude, lon: terminal.longitude } },
+                    { key: 'portId', label: 'Port', extracted: normalizedExtractedData.suggested_port_name, current: terminal.port.name },
                 ];
 
                 // Batch field analysis into a single call to reduce token usage
@@ -386,12 +644,10 @@ Return JSON:
                     
                     // Build relevant research context for each field (only include relevant queries)
                     const getRelevantResearch = (fieldKey: string): string => {
-                        if (fieldKey === 'operatorGroup' || fieldKey === 'ownership') {
-                            return researchQueries.find(q => q.query.includes('operates') || q.query.includes('ownership'))?.result || '';
+                        if (fieldKey === 'operatorGroup') {
+                            return researchQueries.find(q => q.query.includes('operates'))?.result || '';
                         } else if (fieldKey === 'capacity' || fieldKey === 'cargoTypes') {
                             return researchQueries.find(q => q.query.includes('capacity') || q.query.includes('cargo'))?.result || '';
-                        } else if (fieldKey === 'ispsRiskLevel') {
-                            return researchQueries.find(q => q.query.includes('ISPS') || q.query.includes('security'))?.result || '';
                         } else if (fieldKey === 'coordinates') {
                             return researchQueries.find(q => q.query.includes('location') || q.query.includes('latitude'))?.result || '';
                         } else if (fieldKey === 'portId') {
@@ -463,9 +719,8 @@ Return JSON object with "analyses" array:
                                 if (aField.includes(keyLower) || keyLower.includes(aField)) return true;
                                 if (aField.includes(labelLower) || labelLower.includes(aField)) return true;
                                 
-                                // Special cases for operatorGroup and ownership
+                                // Special cases for operatorGroup
                                 if (fieldInfo.key === 'operatorGroup' && (aField.includes('operator') || aField.includes('group'))) return true;
-                                if (fieldInfo.key === 'ownership' && aField.includes('ownership')) return true;
                                 
                                 // Handle snake_case variations
                                 const keySnake = fieldInfo.key.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -477,6 +732,21 @@ Return JSON object with "analyses" array:
                             // Default shouldUpdate to true if analysis is empty (let user decide in preview)
                             const shouldUpdate = analysis.shouldUpdate !== undefined ? analysis.shouldUpdate : true;
                             
+                            // Get conflict information for this field
+                            const fieldKeyMap: Record<string, string> = {
+                                'operatorGroup': 'operator_group',
+                                'cargoTypes': 'cargo_types',
+                                'capacity': 'capacity',
+                                'coordinates': 'new_coordinates',
+                                'portId': 'suggested_port_name'
+                            };
+                            const conflictKey = fieldKeyMap[fieldInfo.key];
+                            const fieldConflicts = conflictData.conflicts?.find((c: any) => c.field === conflictKey);
+                            
+                            // Get source query names for this field
+                            const sourceQueryIndices = fieldSources[fieldInfo.key] || [];
+                            const sourceQueryNames = sourceQueryIndices.map(idx => reportTitles[idx] || `Query ${idx}`);
+                            
                             fieldProposals.push({
                                 field: fieldInfo.key,
                                 currentValue: fieldInfo.current,
@@ -484,8 +754,19 @@ Return JSON object with "analyses" array:
                                 confidence: fieldConfidences[fieldInfo.key] || 0.5,
                                 shouldUpdate,
                                 reasoning: analysis.reasoning || 'No specific reasoning provided',
-                                sources: allSources,
-                                updatePriority: analysis.updatePriority || (['coordinates', 'capacity', 'operatorGroup'].includes(fieldInfo.key) ? 'high' : 'medium')
+                                sources: sourceQueryNames.length > 0 ? sourceQueryNames : allSources,
+                                updatePriority: analysis.updatePriority || (['coordinates', 'capacity', 'operatorGroup'].includes(fieldInfo.key) ? 'high' : 'medium'),
+                                validationErrors: validationErrors[fieldInfo.key],
+                                validationWarnings: validationWarnings[fieldInfo.key],
+                                conflicts: fieldConflicts?.conflictingValues?.map((cv: any) => ({
+                                    conflictingValue: cv.value,
+                                    sourceQuery: cv.sourceQueryTitle || `Query ${cv.sourceQueryIndex}`,
+                                    sourceIndex: cv.sourceQueryIndex,
+                                    confidence: cv.confidence || 0.5,
+                                    evidence: cv.evidence
+                                })),
+                                hasConflict: fieldConflicts && fieldConflicts.conflictingValues && fieldConflicts.conflictingValues.length > 1,
+                                llmQuality: fieldQualities[fieldInfo.key]
                             });
                         }
                     } catch (e) {
@@ -493,6 +774,22 @@ Return JSON object with "analyses" array:
                         for (const fieldInfo of fieldsWithData) {
                             const shouldUpdate = fieldInfo.current !== fieldInfo.extracted && 
                                                (fieldConfidences[fieldInfo.key] || 0.5) >= 0.5;
+                            
+                            // Get conflict information for this field
+                            const fieldKeyMap: Record<string, string> = {
+                                'operatorGroup': 'operator_group',
+                                'cargoTypes': 'cargo_types',
+                                'capacity': 'capacity',
+                                'coordinates': 'new_coordinates',
+                                'portId': 'suggested_port_name'
+                            };
+                            const conflictKey = fieldKeyMap[fieldInfo.key];
+                            const fieldConflicts = conflictData.conflicts?.find((c: any) => c.field === conflictKey);
+                            
+                            // Get source query names for this field
+                            const sourceQueryIndices = fieldSources[fieldInfo.key] || [];
+                            const sourceQueryNames = sourceQueryIndices.map(idx => reportTitles[idx] || `Query ${idx}`);
+                            
                             fieldProposals.push({
                                 field: fieldInfo.key,
                                 currentValue: fieldInfo.current,
@@ -500,8 +797,19 @@ Return JSON object with "analyses" array:
                                 confidence: fieldConfidences[fieldInfo.key] || 0.5,
                                 shouldUpdate,
                                 reasoning: shouldUpdate ? 'Proposed value differs from current and has sufficient confidence' : 'Insufficient confidence or no change needed',
-                                sources: allSources,
-                                updatePriority: ['coordinates', 'capacity', 'operatorGroup'].includes(fieldInfo.key) ? 'high' : 'medium'
+                                sources: sourceQueryNames.length > 0 ? sourceQueryNames : allSources,
+                                updatePriority: ['coordinates', 'capacity', 'operatorGroup'].includes(fieldInfo.key) ? 'high' : 'medium',
+                                validationErrors: validationErrors[fieldInfo.key],
+                                validationWarnings: validationWarnings[fieldInfo.key],
+                                conflicts: fieldConflicts?.conflictingValues?.map((cv: any) => ({
+                                    conflictingValue: cv.value,
+                                    sourceQuery: cv.sourceQueryTitle || `Query ${cv.sourceQueryIndex}`,
+                                    sourceIndex: cv.sourceQueryIndex,
+                                    confidence: cv.confidence || 0.5,
+                                    evidence: cv.evidence
+                                })),
+                                hasConflict: fieldConflicts && fieldConflicts.conflictingValues && fieldConflicts.conflictingValues.length > 1,
+                                llmQuality: fieldQualities[fieldInfo.key]
                             });
                         }
                     }
@@ -523,36 +831,32 @@ Return JSON object with "analyses" array:
                     researchSummary = researchText.substring(0, 200);
                 }
 
-                // Validate extractedData fields
-                const validISPSLevels = ['Low', 'Medium', 'High', 'Very High'];
-                if (extractedData.isps_level && !validISPSLevels.includes(extractedData.isps_level)) {
-                    throw {
-                        category: 'VALIDATION_ERROR',
-                        message: 'Received unexpected data format. Please try again.',
-                        originalError: `Invalid ISPS level: ${extractedData.isps_level}`,
-                        retryable: false
-                    };
-                }
-                if (extractedData.cargo_types && !Array.isArray(extractedData.cargo_types)) {
-                    throw {
-                        category: 'VALIDATION_ERROR',
-                        message: 'Received unexpected data format. Please try again.',
-                        originalError: 'Invalid cargo_types: must be an array',
-                        retryable: false
-                    };
-                }
-                if (extractedData.new_coordinates) {
-                    if (typeof extractedData.new_coordinates.lat !== 'number' || 
-                        typeof extractedData.new_coordinates.lon !== 'number' ||
-                        isNaN(extractedData.new_coordinates.lat) || 
-                        isNaN(extractedData.new_coordinates.lon)) {
-                        throw {
-                            category: 'VALIDATION_ERROR',
-                            message: 'Received unexpected data format. Please try again.',
-                            originalError: 'Invalid coordinates: lat and lon must be valid numbers',
-                            retryable: false
-                        };
+                // Validation is now done in STEP 4.5 above
+                // Additional critical validations that should prevent processing
+                const criticalValidationErrors: string[] = [];
+                
+                // Check for critical validation errors that should stop processing
+                for (const [fieldKey, errors] of Object.entries(validationErrors)) {
+                    if (errors && errors.length > 0) {
+                        // Only fail on critical errors, warnings are handled in proposals
+                        const criticalErrors = errors.filter(e => 
+                            e.includes('must be') || 
+                            e.includes('required') || 
+                            e.includes('cannot be')
+                        );
+                        if (criticalErrors.length > 0) {
+                            criticalValidationErrors.push(`${fieldKey}: ${criticalErrors.join('; ')}`);
+                        }
                     }
+                }
+                
+                if (criticalValidationErrors.length > 0) {
+                    throw {
+                        category: 'VALIDATION_ERROR',
+                        message: 'Critical validation errors detected. Please review the extracted data.',
+                        originalError: criticalValidationErrors.join(' | '),
+                        retryable: false
+                    };
                 }
                 
                 if (abortSignal.aborted) {
@@ -626,8 +930,6 @@ Return JSON:
                     lastDeepResearchAt: Date;
                     lastDeepResearchSummary: string;
                     operatorGroup?: string;
-                    ownership?: string;
-                    ispsRiskLevel?: string;
                     cargoTypes?: string;
                     capacity?: string;
                     latitude?: number;
@@ -697,12 +999,8 @@ Return JSON:
                     else if (proposal.proposedValue !== null && proposal.proposedValue !== undefined && proposal.proposedValue !== '') {
                         if (proposal.field === 'operatorGroup') {
                             dataToUpdate.operatorGroup = proposal.proposedValue;
-                        } else if (proposal.field === 'ownership') {
-                            dataToUpdate.ownership = proposal.proposedValue;
                         } else if (proposal.field === 'capacity') {
                             dataToUpdate.capacity = proposal.proposedValue;
-                        } else if (proposal.field === 'ispsRiskLevel') {
-                            dataToUpdate.ispsRiskLevel = proposal.proposedValue;
                         }
                     }
 

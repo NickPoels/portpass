@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { Port, Cluster, ISPSRiskLevel, ISPSEnforcementStrength } from "@/lib/types";
-import { X, Save, AlertTriangle, Copy, RotateCw, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Port, Cluster, ISPSRiskLevel, ISPSEnforcementStrength, TerminalProposal } from "@/lib/types";
+import { X, Save, AlertTriangle, Copy, RotateCw, AlertCircle, Check, XCircle, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
+import ReactMarkdown from "react-markdown";
 
 interface ErrorInfo {
     category: string;
@@ -16,9 +18,12 @@ interface PortDetailProps {
     onClose: () => void;
     onUpdate: (updated: Port) => void;
     onDelete: () => void;
+    onProposalsChange?: (proposals: TerminalProposal[]) => void;
+    selectedProposalId?: string | null;
 }
 
-export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: PortDetailProps) => {
+export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete, onProposalsChange, selectedProposalId }: PortDetailProps) => {
+    const router = useRouter();
     const [formData, setFormData] = useState<Port>(port);
     const [isDirty, setIsDirty] = useState(false);
     const [isResearching, setIsResearching] = useState(false);
@@ -26,15 +31,131 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
     const [showPreview, setShowPreview] = useState(false);
     const [fullReport, setFullReport] = useState<string | null>(null);
     const [showFullReport, setShowFullReport] = useState(false);
+    const [selectedReportIndex, setSelectedReportIndex] = useState<number | null>(null);
+    const [availableReports, setAvailableReports] = useState<Array<{title: string, content: string}>>([]);
     const [lastError, setLastError] = useState<ErrorInfo | null>(null);
     const [retryCount, setRetryCount] = useState(0);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [dataToUpdate, setDataToUpdate] = useState<any>(null);
     const [activityLog, setActivityLog] = useState<Array<{message: string, step: string, progress: number, timestamp: Date, completed: boolean}>>([]);
     const [currentProgress, setCurrentProgress] = useState(0);
     const [fieldProposals, setFieldProposals] = useState<Array<any>>([]);
     const [approvedFields, setApprovedFields] = useState<Set<string>>(new Set());
     const [notesProposal, setNotesProposal] = useState<{currentNotes: string, newFindings: string, combinedNotes: string} | null>(null);
+    
+    // Terminal discovery state
+    const [isFindingTerminals, setIsFindingTerminals] = useState(false);
+    const [terminalDiscoveryStatus, setTerminalDiscoveryStatus] = useState("");
+    const [terminalDiscoveryProgress, setTerminalDiscoveryProgress] = useState(0);
+    const [terminalProposals, setTerminalProposals] = useState<Array<{
+        id: string;
+        name: string;
+        latitude: number | null;
+        longitude: number | null;
+        status: string;
+    }>>([]);
+    const [selectedTerminalIds, setSelectedTerminalIds] = useState<Set<string>>(new Set());
+    const [isProcessingTerminals, setIsProcessingTerminals] = useState(false);
+    const [highlightedProposalId, setHighlightedProposalId] = useState<string | null>(null);
+    const terminalAbortControllerRef = useRef<AbortController | null>(null);
+    const proposalRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+    // Extract research process (thinking tags) from content
+    const extractResearchProcess = (content: string): { cleaned: string, process?: string } => {
+        // Extract all <think>...</think> blocks
+        const thinkPattern = /<think>([\s\S]*?)<\/think>/gi;
+        const thinkBlocks: string[] = [];
+        let cleaned = content;
+        let match;
+        
+        while ((match = thinkPattern.exec(content)) !== null) {
+            thinkBlocks.push(match[1].trim());
+            cleaned = cleaned.replace(match[0], '').trim();
+        }
+        
+        // Combine all thinking blocks
+        const process = thinkBlocks.length > 0 
+            ? thinkBlocks.join('\n\n---\n\n')
+            : undefined;
+        
+        return { cleaned, process };
+    };
+
+    // Parse combined report into individual reports
+    const parseReports = (combinedReport: string): Array<{title: string, content: string, researchProcess?: string}> => {
+        const reports: Array<{title: string, content: string, researchProcess?: string}> = [];
+        const fallbackTitles = [
+            'Governance Report',
+            'ISPS Risk & Enforcement Report',
+            'Strategic Intelligence Report',
+            'Verification Report'
+        ];
+        
+        // Try to split by separator first
+        const sections = combinedReport.split('\n\n---\n\n');
+        
+        for (let i = 0; i < sections.length; i++) {
+            const section = sections[i].trim();
+            if (!section) continue;
+            
+            // Try multiple regex patterns for header extraction
+            let title: string | null = null;
+            let content = section;
+            
+            // Pattern 1: ## Title followed by \n\n
+            const pattern1 = section.match(/^##\s+(.+?)\n\n/s);
+            if (pattern1) {
+                title = pattern1[1].trim();
+                content = section.replace(/^##\s+.+?\n\n/s, '').trim();
+            } else {
+                // Pattern 2: ## Title followed by single \n
+                const pattern2 = section.match(/^##\s+(.+?)\n/s);
+                if (pattern2) {
+                    title = pattern2[1].trim();
+                    content = section.replace(/^##\s+.+?\n/s, '').trim();
+                } else {
+                    // Pattern 3: ## Title at start of line
+                    const pattern3 = section.match(/^##\s+(.+?)$/m);
+                    if (pattern3) {
+                        title = pattern3[1].trim();
+                        content = section.replace(/^##\s+.+?\n?/m, '').trim();
+                    }
+                }
+            }
+            
+            // Use fallback title if extraction failed
+            if (!title && i < fallbackTitles.length) {
+                title = fallbackTitles[i];
+            } else if (!title) {
+                title = `Report ${i + 1}`;
+            }
+            
+            // Extract research process and clean content
+            const { cleaned, process } = extractResearchProcess(content);
+            
+            if (cleaned) {
+                reports.push({ 
+                    title, 
+                    content: cleaned,
+                    researchProcess: process
+                });
+            }
+        }
+        
+        // Fallback: if no sections found, treat entire report as one
+        if (reports.length === 0 && combinedReport.trim()) {
+            const { cleaned, process } = extractResearchProcess(combinedReport.trim());
+            reports.push({ 
+                title: 'Full Research Report', 
+                content: cleaned,
+                researchProcess: process
+            });
+        }
+        
+        return reports;
+    };
 
     useEffect(() => {
         setFormData(port);
@@ -43,15 +164,93 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
         // Load stored full research report from port prop
         if (port.lastDeepResearchReport && !fullReport) {
             setFullReport(port.lastDeepResearchReport);
+            const parsed = parseReports(port.lastDeepResearchReport);
+            setAvailableReports(parsed);
         }
+        
+        // Load terminal proposals
+        loadTerminalProposals();
     }, [port]);
+
+    // Notify parent when proposals change
+    useEffect(() => {
+        if (onProposalsChange) {
+            // Convert to TerminalProposal format
+            const proposals: TerminalProposal[] = terminalProposals.map(p => ({
+                id: p.id,
+                portId: port.id,
+                name: p.name,
+                latitude: p.latitude,
+                longitude: p.longitude,
+                address: null, // Address not stored in current schema, but available from API if needed
+                status: (p.status || "pending") as "pending" | "approved" | "rejected",
+                createdAt: new Date().toISOString(), // API returns Date, but we use simplified format
+                approvedAt: null
+            }));
+            onProposalsChange(proposals);
+        }
+    }, [terminalProposals, port.id, onProposalsChange]);
+
+    // Keyboard navigation for report view
+    useEffect(() => {
+        if (!showFullReport || selectedReportIndex === null) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't trigger if user is typing in an input/textarea
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            if (e.key === 'ArrowLeft' && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault();
+                if (selectedReportIndex !== null && selectedReportIndex > 0) {
+                    setSelectedReportIndex(selectedReportIndex - 1);
+                }
+            } else if (e.key === 'ArrowRight' && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault();
+                if (selectedReportIndex !== null && selectedReportIndex < availableReports.length - 1) {
+                    setSelectedReportIndex(selectedReportIndex + 1);
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setSelectedReportIndex(null);
+            } else if ((e.metaKey || e.ctrlKey) && e.key === 'c' && !e.shiftKey) {
+                // Only copy if not in input field (browser default handles input copying)
+                if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+                    e.preventDefault();
+                    const reportToCopy = selectedReportIndex !== null && selectedReportIndex !== -1 && availableReports[selectedReportIndex]
+                        ? availableReports[selectedReportIndex].content
+                        : fullReport || port.lastDeepResearchReport;
+                    if (reportToCopy) {
+                        navigator.clipboard.writeText(reportToCopy);
+                        toast.success('Report copied to clipboard');
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showFullReport, selectedReportIndex, availableReports.length, availableReports, fullReport, port.lastDeepResearchReport]);
+
+    const loadTerminalProposals = async () => {
+        try {
+            const response = await fetch(`/api/terminal-proposals?portId=${port.id}&status=pending`);
+            if (response.ok) {
+                const data = await response.json();
+                setTerminalProposals(data);
+            }
+        } catch (error) {
+            console.error('Failed to load terminal proposals:', error);
+        }
+    };
 
     const handleChange = (field: keyof Port, value: Port[keyof Port]) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setIsDirty(true);
     };
 
-    const handleArrayChange = (field: "identityCompetitors" | "dominantTOSSystems" | "dominantACSSystems", value: string) => {
+    const handleArrayChange = (field: "identityCompetitors", value: string) => {
         // Parse comma-separated string into array, trim whitespace, filter empty
         const array = value.split(",").map(s => s.trim()).filter(s => s.length > 0);
         setFormData(prev => ({ ...prev, [field]: array.length > 0 ? array : undefined }));
@@ -80,148 +279,148 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
         }
         
         setIsResearching(true);
-        setResearchStatus("Initializing...");
+        setResearchStatus("Starting research job...");
         setShowPreview(false);
         setFullReport(null);
+        setAvailableReports([]);
+        setSelectedReportIndex(null);
 
-        abortControllerRef.current = new AbortController();
-        const abortController = abortControllerRef.current;
+        // Clear any existing polling
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
 
         try {
-            const response = await fetch(`/api/ports/${port.id}/deep-research`, {
+            // Start a background research job
+            const startResponse = await fetch(`/api/ports/${port.id}/deep-research/start`, {
                 method: "POST",
-                signal: abortController.signal,
             });
 
-            if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
-                const errorData = await response.json();
-                const errorInfo: ErrorInfo = {
-                    category: errorData.category || 'UNKNOWN_ERROR',
-                    message: errorData.message || errorData.error || 'An error occurred',
-                    originalError: errorData.error,
-                    retryable: errorData.retryable !== false
-                };
-                setLastError(errorInfo);
-                setIsResearching(false);
-                toast.error(errorInfo.message);
-                return;
+            if (!startResponse.ok) {
+                const errorData = await startResponse.json();
+                throw new Error(errorData.message || errorData.error || 'Failed to start research job');
             }
 
-            if (!response.body) {
-                throw new Error("No response body");
-            }
+            const startData = await startResponse.json();
+            const jobId = startData.jobId;
+            setCurrentJobId(jobId);
+            setResearchStatus("Research job started. Processing in background...");
+            setCurrentProgress(0);
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
+            // Poll for job status
+            const pollJobStatus = async () => {
+                try {
+                    const statusResponse = await fetch(`/api/research/jobs/${jobId}`);
+                    if (!statusResponse.ok) {
+                        throw new Error('Failed to get job status');
+                    }
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+                    const job = await statusResponse.json();
+                    setCurrentProgress(job.progress || 0);
 
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
-
-                const events = buffer.split("\n\n");
-                buffer = events.pop() || "";
-
-                for (const eventBlock of events) {
-                    const lines = eventBlock.split("\n");
-                    const eventLine = lines.find(l => l.startsWith("event: "));
-                    const dataLine = lines.find(l => l.startsWith("data: "));
-
-                    if (eventLine && dataLine) {
-                        const eventType = eventLine.replace("event: ", "").trim();
-                        const data = JSON.parse(dataLine.replace("data: ", ""));
-
-                        if (eventType === "status") {
-                            setResearchStatus(data.message);
-                            setCurrentProgress(data.progress || 0);
-                            
-                            setActivityLog(prev => {
-                                const updated = prev.map(entry => 
-                                    entry.step === data.step ? { ...entry, completed: true } : entry
-                                );
-                                
-                                if (!updated.find(e => e.step === data.step && !e.completed)) {
-                                    updated.push({
-                                        message: data.message,
-                                        step: data.step,
-                                        progress: data.progress || 0,
-                                        timestamp: new Date(),
-                                        completed: false
-                                    });
-                                }
-                                
-                                return updated;
-                            });
-                        } else if (eventType === "preview") {
-                            setFieldProposals(data.field_proposals || []);
-                            setFullReport(data.full_report || null);
-                            setDataToUpdate(data.data_to_update);
-                            setNotesProposal(data.notes_proposal || null);
-                            
-                            const autoApproved = new Set(
-                                (data.field_proposals || [])
-                                    .filter((p: any) => p.autoApproved && p.confidence > 0.80)
-                                    .map((p: any) => p.field)
-                            );
-                            setApprovedFields(autoApproved);
-                            
-                            setShowPreview(true);
-                            setResearchStatus("Research complete - Review changes");
-                            setIsResearching(false);
-                            
-                            setActivityLog(prev => prev.map(entry => 
-                                entry.step === 'complete' ? { ...entry, completed: true } : entry
-                            ));
-                        } else if (eventType === "error") {
-                            const errorInfo: ErrorInfo = {
-                                category: data.category || 'UNKNOWN_ERROR',
-                                message: data.message || 'An unexpected error occurred.',
-                                originalError: data.originalError,
-                                retryable: data.retryable !== false
-                            };
-                            setLastError(errorInfo);
-                            setIsResearching(false);
-                            
-                            if (errorInfo.category === 'NETWORK_ERROR' && errorInfo.message.includes('cancelled')) {
-                                toast.success('Research cancelled');
-                            } else {
-                                toast.error(errorInfo.message);
-                            }
+                    if (job.status === 'completed') {
+                        // Job completed, refresh port data to get results
+                        setIsResearching(false);
+                        setResearchStatus("Research complete - Review changes");
+                        setCurrentProgress(100);
+                        
+                        // Clear polling
+                        if (pollingIntervalRef.current) {
+                            clearInterval(pollingIntervalRef.current);
+                            pollingIntervalRef.current = null;
+                        }
+                        
+                        // Force refresh: Use router to refresh server-side data
+                        router.refresh();
+                        
+                        // Also clear and reload report state after a short delay to allow data to refresh
+                        setTimeout(() => {
+                            setFullReport(null);
+                            setAvailableReports([]);
+                            setSelectedReportIndex(null);
+                            // The useEffect will reload the report when port prop updates
+                        }, 500);
+                        
+                        toast.success('Research completed! Review the changes below.');
+                        return;
+                    } else if (job.status === 'failed') {
+                        setIsResearching(false);
+                        setResearchStatus("Research failed");
+                        const errorInfo: ErrorInfo = {
+                            category: 'JOB_ERROR',
+                            message: job.error || 'Research job failed',
+                            retryable: true
+                        };
+                        setLastError(errorInfo);
+                        toast.error(job.error || 'Research job failed');
+                        
+                        // Clear polling
+                        if (pollingIntervalRef.current) {
+                            clearInterval(pollingIntervalRef.current);
+                            pollingIntervalRef.current = null;
+                        }
+                        return;
+                    } else if (job.status === 'running' || job.status === 'pending') {
+                        // Update progress display
+                        const progress = job.progress || 0;
+                        setCurrentProgress(progress);
+                        if (progress > 0) {
+                            setResearchStatus(`Researching... (${progress}%)`);
+                        } else {
+                            setResearchStatus(job.status === 'pending' ? 'Job queued, waiting to start...' : 'Researching...');
                         }
                     }
+                } catch (error) {
+                    console.error('Error polling job status:', error);
                 }
-            }
+            };
+
+            // Poll every 2 seconds
+            pollingIntervalRef.current = setInterval(pollJobStatus, 2000);
+            // Initial poll
+            pollJobStatus();
+
         } catch (e) {
-            if (e instanceof Error && (e.name === 'AbortError' || e.message.includes('aborted'))) {
-                setIsResearching(false);
-                setResearchStatus("Cancelled");
-                toast.success('Research cancelled');
-                return;
-            }
-            
+            setIsResearching(false);
+            setResearchStatus("Failed to start research");
             const errorInfo: ErrorInfo = {
                 category: 'NETWORK_ERROR',
-                message: 'Network error occurred. Please check your connection and try again.',
+                message: e instanceof Error ? e.message : 'Failed to start research job',
                 originalError: e instanceof Error ? e.message : String(e),
                 retryable: true
             };
             setLastError(errorInfo);
-            setIsResearching(false);
             toast.error(errorInfo.message);
+            
+            // Clear polling if it was set
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
         }
     };
 
     const cancelResearch = () => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            abortControllerRef.current = null;
+        // Clear polling
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
         }
         setIsResearching(false);
-        setResearchStatus("Cancelling...");
+        setResearchStatus("Cancelled");
+        setCurrentJobId(null);
+        toast.success('Research monitoring stopped (job continues in background)');
     };
+    
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+        };
+    }, []);
 
     const applyChanges = async () => {
         if (approvedFields.size === 0 && !notesProposal) {
@@ -258,10 +457,6 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                 if (approvedFields.has(proposal.field)) {
                     if (proposal.field === 'identityCompetitors' && Array.isArray(proposal.proposedValue)) {
                         updatedPort.identityCompetitors = proposal.proposedValue;
-                    } else if (proposal.field === 'dominantTOSSystems' && Array.isArray(proposal.proposedValue)) {
-                        updatedPort.dominantTOSSystems = proposal.proposedValue;
-                    } else if (proposal.field === 'dominantACSSystems' && Array.isArray(proposal.proposedValue)) {
-                        updatedPort.dominantACSSystems = proposal.proposedValue;
                     } else if (proposal.field === 'strategicNotes' && proposal.proposedValue) {
                         updatedPort.strategicNotes = proposal.proposedValue;
                     } else if (proposal.proposedValue !== null && proposal.proposedValue !== undefined) {
@@ -337,6 +532,207 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
         toast.success('Changes discarded');
     };
 
+    const startFindTerminals = async () => {
+        setIsFindingTerminals(true);
+        setTerminalDiscoveryStatus("Initializing...");
+        setTerminalDiscoveryProgress(0);
+
+        terminalAbortControllerRef.current = new AbortController();
+        const abortController = terminalAbortControllerRef.current;
+
+        try {
+            const response = await fetch(`/api/ports/${port.id}/find-terminals`, {
+                method: "POST",
+                signal: abortController.signal,
+            });
+
+            if (!response.ok && response.headers.get('content-type')?.includes('application/json')) {
+                const errorData = await response.json();
+                toast.error(errorData.message || 'Failed to start terminal discovery');
+                setIsFindingTerminals(false);
+                return;
+            }
+
+            if (!response.body) {
+                throw new Error("No response body");
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+
+                const events = buffer.split("\n\n");
+                buffer = events.pop() || "";
+
+                for (const eventBlock of events) {
+                    const lines = eventBlock.split("\n");
+                    const eventLine = lines.find(l => l.startsWith("event: "));
+                    const dataLine = lines.find(l => l.startsWith("data: "));
+
+                    if (eventLine && dataLine) {
+                        const eventType = eventLine.replace("event: ", "").trim();
+                        const data = JSON.parse(dataLine.replace("data: ", ""));
+
+                        if (eventType === "status") {
+                            setTerminalDiscoveryStatus(data.message);
+                            setTerminalDiscoveryProgress(data.progress || 0);
+                        } else if (eventType === "preview") {
+                            setTerminalProposals(data.proposals || []);
+                            setTerminalDiscoveryStatus("Terminal discovery complete");
+                            setIsFindingTerminals(false);
+                            await loadTerminalProposals(); // Reload to get all proposals
+                            toast.success(`Found ${data.new_proposals} new terminal(s)`);
+                        } else if (eventType === "error") {
+                            const errorInfo: ErrorInfo = {
+                                category: data.category || 'UNKNOWN_ERROR',
+                                message: data.message || 'An unexpected error occurred.',
+                                originalError: data.originalError,
+                                retryable: data.retryable !== false
+                            };
+                            setIsFindingTerminals(false);
+                            toast.error(errorInfo.message);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            if (e instanceof Error && (e.name === 'AbortError' || e.message.includes('aborted'))) {
+                setIsFindingTerminals(false);
+                setTerminalDiscoveryStatus("Cancelled");
+                toast.success('Terminal discovery cancelled');
+                return;
+            }
+            
+            setIsFindingTerminals(false);
+            toast.error('Failed to discover terminals. Please try again.');
+        }
+    };
+
+    const cancelFindTerminals = () => {
+        if (terminalAbortControllerRef.current) {
+            terminalAbortControllerRef.current.abort();
+            terminalAbortControllerRef.current = null;
+        }
+        setIsFindingTerminals(false);
+        setTerminalDiscoveryStatus("Cancelling...");
+    };
+
+    const handleTerminalToggle = (id: string) => {
+        setSelectedTerminalIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const handleSelectAllTerminals = () => {
+        if (selectedTerminalIds.size === terminalProposals.length) {
+            setSelectedTerminalIds(new Set());
+        } else {
+            setSelectedTerminalIds(new Set(terminalProposals.map(p => p.id)));
+        }
+    };
+
+    // Scroll to and highlight a proposal when selected from map
+    const scrollToProposal = useCallback((proposalId: string) => {
+        const proposalElement = proposalRefs.current.get(proposalId);
+        if (proposalElement) {
+            // Highlight the proposal
+            setHighlightedProposalId(proposalId);
+            
+            // Scroll to the proposal
+            proposalElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+                setHighlightedProposalId(null);
+            }, 3000);
+        }
+    }, []);
+
+    // Listen for proposal selection from map
+    useEffect(() => {
+        if (selectedProposalId) {
+            scrollToProposal(selectedProposalId);
+        }
+    }, [selectedProposalId, scrollToProposal]);
+
+    const handleApproveTerminals = async (proposalIds: string[]) => {
+        if (proposalIds.length === 0) {
+            toast.error('Please select at least one terminal');
+            return;
+        }
+
+        setIsProcessingTerminals(true);
+        try {
+            const response = await fetch('/api/terminal-proposals/batch-approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalIds,
+                    action: 'approve'
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to approve terminals');
+
+            const result = await response.json();
+            toast.success(`Approved ${result.approvedCount} terminal(s). Created ${result.createdTerminals.length} terminal(s).`);
+            
+            setSelectedTerminalIds(new Set());
+            await loadTerminalProposals();
+            
+            // Refresh the page data to show newly created terminals
+            router.refresh();
+        } catch (error) {
+            toast.error(`Failed to approve terminals: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsProcessingTerminals(false);
+        }
+    };
+
+    const handleRejectTerminals = async (proposalIds: string[]) => {
+        if (proposalIds.length === 0) {
+            toast.error('Please select at least one terminal');
+            return;
+        }
+
+        setIsProcessingTerminals(true);
+        try {
+            const response = await fetch('/api/terminal-proposals/batch-approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    proposalIds,
+                    action: 'reject'
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to reject terminals');
+
+            const result = await response.json();
+            toast.success(`Rejected ${result.rejectedCount} terminal(s).`);
+            
+            setSelectedTerminalIds(new Set());
+            await loadTerminalProposals();
+        } catch (error) {
+            toast.error(`Failed to reject terminals: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsProcessingTerminals(false);
+        }
+    };
+
     const retryResearch = async () => {
         if (retryCount >= 3) {
             toast.error('Maximum retry attempts reached');
@@ -350,27 +746,229 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
     };
 
     const copyFullReport = () => {
-        const reportToCopy = fullReport || port.lastDeepResearchReport;
-        if (reportToCopy) {
-            navigator.clipboard.writeText(reportToCopy);
+        if (selectedReportIndex !== null && availableReports[selectedReportIndex]) {
+            navigator.clipboard.writeText(availableReports[selectedReportIndex].content);
             toast.success('Report copied to clipboard');
+        } else {
+            const reportToCopy = fullReport || port.lastDeepResearchReport;
+            if (reportToCopy) {
+                navigator.clipboard.writeText(reportToCopy);
+                toast.success('Report copied to clipboard');
+            }
         }
     };
+
+    const handleReportSelect = (index: number) => {
+        setSelectedReportIndex(index);
+    };
+
+    const handlePreviousReport = () => {
+        if (selectedReportIndex !== null && selectedReportIndex > 0) {
+            setSelectedReportIndex(selectedReportIndex - 1);
+        }
+    };
+
+    const handleNextReport = () => {
+        if (selectedReportIndex !== null && selectedReportIndex < availableReports.length - 1) {
+            setSelectedReportIndex(selectedReportIndex + 1);
+        }
+    };
+
+    const handleBackToSelection = () => {
+        setSelectedReportIndex(null);
+    };
+
+    const reportContent = fullReport || port.lastDeepResearchReport;
 
     return (
         <div className="flex flex-col h-full bg-white shadow-xl">
             <div className="px-4 py-3 border-b flex items-center justify-between bg-gray-50 sticky top-0 z-10">
                 <h2 className="text-lg font-bold text-gray-900 truncate pr-4">
-                    Port Details
+                    {showFullReport 
+                        ? (selectedReportIndex !== null && availableReports[selectedReportIndex]
+                            ? availableReports[selectedReportIndex].title
+                            : "Full Research Report")
+                        : "Port Details"}
                 </h2>
                 <div className="flex items-center space-x-2">
-                    <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200">
-                        <X className="h-5 w-5" />
-                    </button>
+                    {showFullReport ? (
+                        <button 
+                            onClick={() => {
+                                setShowFullReport(false);
+                                setSelectedReportIndex(null);
+                            }} 
+                            className="p-1.5 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200"
+                            title="Back to Port Details"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    ) : (
+                        <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200">
+                            <X className="h-5 w-5" />
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            {showFullReport && reportContent ? (
+                selectedReportIndex === null ? (
+                    // Report selection interface
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="max-w-none">
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Select a Report to View</h3>
+                                <p className="text-sm text-gray-600">Choose one of the research reports below to view in detail.</p>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4">
+                                {availableReports.length > 0 ? (
+                                    availableReports.map((report, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => handleReportSelect(index)}
+                                            className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                        >
+                                            <h4 className="font-semibold text-gray-900 mb-1">{report.title}</h4>
+                                            <p className="text-xs text-gray-500 line-clamp-2">
+                                                {report.content.substring(0, 150)}...
+                                            </p>
+                                        </button>
+                                    ))
+                                ) : (
+                                    // Fallback: show combined report option if parsing failed
+                                    <button
+                                        onClick={() => setSelectedReportIndex(-1)}
+                                        className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                    >
+                                        <h4 className="font-semibold text-gray-900 mb-1">Full Research Report</h4>
+                                        <p className="text-xs text-gray-500">View the complete research report</p>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    // Selected report view with navigation
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="max-w-none">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-200 bg-gray-50 -mx-6 px-4 sm:px-6 py-3 sticky top-0 z-10">
+                                {/* Left Section: Back Navigation */}
+                                <div className="flex items-center">
+                                    <button
+                                        onClick={handleBackToSelection}
+                                        className="flex items-center space-x-1 px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors font-medium min-h-[44px]"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Back to Selection</span>
+                                        <span className="sm:hidden">Back</span>
+                                    </button>
+                                </div>
+
+                                {/* Center Section: Report Navigation */}
+                                {availableReports.length > 1 && (
+                                    <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3 px-2 sm:px-4 border-l border-r border-gray-200 flex-1 justify-center">
+                                        <button
+                                            onClick={handlePreviousReport}
+                                            disabled={selectedReportIndex === 0 || selectedReportIndex === null || selectedReportIndex === -1}
+                                            className="px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium min-h-[44px]"
+                                            title="Previous Report (←)"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <div className="text-center min-w-[200px]">
+                                            <div className="text-sm font-semibold text-gray-900">
+                                                {selectedReportIndex !== null && selectedReportIndex !== -1 && availableReports[selectedReportIndex]
+                                                    ? availableReports[selectedReportIndex].title
+                                                    : 'Full Research Report'}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                {selectedReportIndex !== null && selectedReportIndex !== -1
+                                                    ? `${selectedReportIndex + 1} of ${availableReports.length}`
+                                                    : '1 of 1'}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleNextReport}
+                                            disabled={selectedReportIndex === null || selectedReportIndex === availableReports.length - 1 || selectedReportIndex === -1}
+                                            className="px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium min-h-[44px]"
+                                            title="Next Report (→)"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Right Section: Actions */}
+                                <div className="flex items-center justify-end">
+                                    <button
+                                        onClick={copyFullReport}
+                                        className="flex items-center space-x-1 px-4 py-2 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors font-medium min-h-[44px]"
+                                        title="Copy Report (Cmd/Ctrl+C)"
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                        <span>Copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Research Process Section */}
+                            {selectedReportIndex !== null && selectedReportIndex !== -1 && availableReports[selectedReportIndex]?.researchProcess && (
+                                <details className="mb-6 border border-blue-200 rounded-lg bg-blue-50">
+                                    <summary className="px-4 py-3 cursor-pointer flex items-center space-x-2 hover:bg-blue-100 transition-colors">
+                                        <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                        <span className="font-semibold text-blue-900">Research Process</span>
+                                        <span className="text-xs text-blue-600 ml-auto">Click to expand</span>
+                                    </summary>
+                                    <div className="px-4 pb-4 pt-2 border-t border-blue-200">
+                                        <div className="bg-white rounded p-3 border border-blue-100">
+                                            <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono overflow-x-auto">
+                                                {availableReports[selectedReportIndex].researchProcess}
+                                            </pre>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(availableReports[selectedReportIndex].researchProcess || '');
+                                                toast.success('Research process copied to clipboard');
+                                            }}
+                                            className="mt-2 flex items-center space-x-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            <span>Copy</span>
+                                        </button>
+                                    </div>
+                                </details>
+                            )}
+                            
+                            <div className="markdown-content text-sm text-gray-700 leading-relaxed">
+                                <ReactMarkdown
+                                    components={{
+                                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-4" {...props} />,
+                                        h2: ({node, ...props}) => <h2 className="text-xl font-bold text-gray-900 mt-5 mb-3" {...props} />,
+                                        h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-gray-900 mt-4 mb-2" {...props} />,
+                                        h4: ({node, ...props}) => <h4 className="text-base font-semibold text-gray-900 mt-3 mb-2" {...props} />,
+                                        p: ({node, ...props}) => <p className="mb-4" {...props} />,
+                                        ul: ({node, ...props}) => <ul className="list-disc list-inside mb-4 space-y-1 ml-4" {...props} />,
+                                        ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-4 space-y-1 ml-4" {...props} />,
+                                        li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                                        strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+                                        em: ({node, ...props}) => <em className="italic" {...props} />,
+                                        code: ({node, ...props}) => <code className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-xs font-mono" {...props} />,
+                                        pre: ({node, ...props}) => <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4" {...props} />,
+                                        a: ({node, ...props}) => <a className="text-blue-600 hover:text-blue-800 hover:underline" {...props} />,
+                                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4 text-gray-600" {...props} />,
+                                        hr: ({node, ...props}) => <hr className="my-6 border-gray-300" {...props} />,
+                                    }}
+                                >
+                                    {selectedReportIndex !== null && selectedReportIndex !== -1 && availableReports[selectedReportIndex]
+                                        ? availableReports[selectedReportIndex].content
+                                        : reportContent}
+                                </ReactMarkdown>
+                            </div>
+                        </div>
+                    </div>
+                )
+            ) : (
+                // Port Details form view
+                <div className="flex-1 overflow-y-auto p-5 space-y-6">
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Port Name</label>
                     <input
@@ -429,16 +1027,6 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Customs Authority</label>
-                            <input
-                                type="text"
-                                value={formData.customsAuthority || ""}
-                                onChange={(e) => handleChange("customsAuthority", e.target.value || null)}
-                                placeholder="e.g., Belgian Customs"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                            />
-                        </div>
                     </div>
                 </div>
 
@@ -446,16 +1034,6 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                 <div className="pt-6 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4">Identity Systems</h3>
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Port-Wide Identity System</label>
-                            <input
-                                type="text"
-                                value={formData.portWideIdentitySystem || ""}
-                                onChange={(e) => handleChange("portWideIdentitySystem", e.target.value || null)}
-                                placeholder="e.g., AlfaPass, CargoCard, Local Badge System"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                            />
-                        </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Identity Competitors</label>
                             <input
@@ -515,35 +1093,6 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                     </div>
                 </div>
 
-                {/* System Landscape Section */}
-                <div className="pt-6 border-t border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">System Landscape</h3>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Dominant TOS Systems</label>
-                            <input
-                                type="text"
-                                value={formatArrayForInput(formData.dominantTOSSystems)}
-                                onChange={(e) => handleArrayChange("dominantTOSSystems", e.target.value)}
-                                placeholder="Comma-separated: e.g., Navis N4, TOS, COSMOS"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                            />
-                            <p className="mt-1 text-xs text-gray-500">Enter TOS system names separated by commas</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Dominant ACS Systems</label>
-                            <input
-                                type="text"
-                                value={formatArrayForInput(formData.dominantACSSystems)}
-                                onChange={(e) => handleArrayChange("dominantACSSystems", e.target.value)}
-                                placeholder="Comma-separated: e.g., Nedap, HID, Local ACS"
-                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                            />
-                            <p className="mt-1 text-xs text-gray-500">Enter ACS system names separated by commas</p>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Strategic Notes Section */}
                 <div className="pt-6 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4">Strategic Notes</h3>
@@ -557,6 +1106,166 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
                         />
                     </div>
+                </div>
+
+                {/* Terminal Discovery Section */}
+                <div className="pt-6 border-t border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Terminal Discovery</h3>
+                    
+                    {/* Find Terminals Button */}
+                    {!isFindingTerminals && (
+                        <button
+                            onClick={startFindTerminals}
+                            className="w-full py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-sm"
+                        >
+                            <MapPin className="h-4 w-4" />
+                            <span>Find Terminals</span>
+                        </button>
+                    )}
+
+                    {/* Discovery Progress */}
+                    {isFindingTerminals && (
+                        <div className="space-y-3 mb-4">
+                            <div className="flex items-center justify-between text-sm text-blue-700">
+                                <div className="flex items-center space-x-2">
+                                    <span className="animate-spin">⏳</span>
+                                    <span className="font-medium">{terminalDiscoveryStatus}</span>
+                                    <span className="text-xs text-blue-500">({terminalDiscoveryProgress}%)</span>
+                                </div>
+                                <button
+                                    onClick={cancelFindTerminals}
+                                    className="px-2 py-1 text-xs bg-white border border-blue-300 text-blue-700 rounded hover:bg-blue-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                            <div className="h-2 bg-blue-200 rounded-full overflow-hidden">
+                                <div 
+                                    className={`h-full transition-all duration-300 ${
+                                        terminalDiscoveryProgress < 50 ? 'bg-blue-500' : 
+                                        terminalDiscoveryProgress < 90 ? 'bg-yellow-500' : 
+                                        'bg-green-500'
+                                    }`}
+                                    style={{ width: `${terminalDiscoveryProgress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Terminal Proposals List */}
+                    {terminalProposals.length > 0 && !isFindingTerminals && (
+                        <div className="mt-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-semibold text-gray-900">
+                                    Terminal Proposals ({terminalProposals.length})
+                                </h4>
+                                <div className="flex items-center space-x-2">
+                                    <button
+                                        onClick={handleSelectAllTerminals}
+                                        className="text-xs text-blue-600 hover:text-blue-800"
+                                    >
+                                        {selectedTerminalIds.size === terminalProposals.length ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Batch Actions */}
+                            {selectedTerminalIds.size > 0 && (
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => handleApproveTerminals(Array.from(selectedTerminalIds))}
+                                        disabled={isProcessingTerminals}
+                                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        <span>Approve ({selectedTerminalIds.size})</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleRejectTerminals(Array.from(selectedTerminalIds))}
+                                        disabled={isProcessingTerminals}
+                                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-1.5 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <XCircle className="w-4 h-4" />
+                                        <span>Reject ({selectedTerminalIds.size})</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Proposals List */}
+                            <div className="space-y-2 max-h-96 overflow-y-auto">
+                                {terminalProposals.map((proposal) => (
+                                    <div
+                                        key={proposal.id}
+                                        ref={(el) => {
+                                            if (el) {
+                                                proposalRefs.current.set(proposal.id, el);
+                                            } else {
+                                                proposalRefs.current.delete(proposal.id);
+                                            }
+                                        }}
+                                        className={`border rounded-lg p-3 cursor-pointer transition-all duration-300 ${
+                                            highlightedProposalId === proposal.id
+                                                ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-300 shadow-md'
+                                                : selectedTerminalIds.has(proposal.id)
+                                                ? 'border-blue-500 bg-blue-50'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                        onClick={() => handleTerminalToggle(proposal.id)}
+                                    >
+                                        <div className="flex items-start space-x-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedTerminalIds.has(proposal.id)}
+                                                onChange={() => handleTerminalToggle(proposal.id)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center space-x-2">
+                                                    <h4 className="font-semibold text-gray-900">{proposal.name}</h4>
+                                                </div>
+                                                {(proposal.latitude && proposal.longitude) ? (
+                                                    <p className="text-xs text-gray-600 mt-1">
+                                                        Location: {proposal.latitude.toFixed(4)}, {proposal.longitude.toFixed(4)}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-xs text-gray-500 mt-1">Location unknown</p>
+                                                )}
+                                            </div>
+                                            <div className="flex space-x-1">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleApproveTerminals([proposal.id]);
+                                                    }}
+                                                    disabled={isProcessingTerminals}
+                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
+                                                    title="Approve"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRejectTerminals([proposal.id]);
+                                                    }}
+                                                    disabled={isProcessingTerminals}
+                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                                                    title="Reject"
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {terminalProposals.length === 0 && !isFindingTerminals && (
+                        <p className="text-xs text-gray-500 mt-2">No pending terminal proposals. Click "Find Terminals" to discover terminals for this port.</p>
+                    )}
                 </div>
 
                 {/* Deep Research Agent */}
@@ -695,7 +1404,7 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                                     .map((proposal) => {
                                         const isApproved = approvedFields.has(proposal.field);
                                         const confidenceColor = proposal.confidence > 0.80 ? 'green' : proposal.confidence >= 0.50 ? 'yellow' : 'red';
-                                        const isHighPriority = ['portAuthority', 'portWideIdentitySystem'].includes(proposal.field);
+                                        const isHighPriority = ['portAuthority'].includes(proposal.field);
                                         
                                         return (
                                             <div key={proposal.field} className={`p-3 rounded border-2 ${isHighPriority ? 'bg-blue-50 border-blue-200' : 'bg-purple-50 border-purple-100'}`}>
@@ -711,14 +1420,10 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                                                             />
                                                             <span className="font-semibold text-purple-900">
                                                                 {proposal.field === 'portAuthority' ? 'Port Authority' :
-                                                                 proposal.field === 'customsAuthority' ? 'Customs Authority' :
-                                                                 proposal.field === 'portWideIdentitySystem' ? 'Port-Wide Identity System' :
                                                                  proposal.field === 'identityCompetitors' ? 'Identity Competitors' :
                                                                  proposal.field === 'identityAdoptionRate' ? 'Identity Adoption Rate' :
                                                                  proposal.field === 'portLevelISPSRisk' ? 'Port-Level ISPS Risk' :
                                                                  proposal.field === 'ispsEnforcementStrength' ? 'ISPS Enforcement Strength' :
-                                                                 proposal.field === 'dominantTOSSystems' ? 'Dominant TOS Systems' :
-                                                                 proposal.field === 'dominantACSSystems' ? 'Dominant ACS Systems' :
                                                                  proposal.field}
                                                             </span>
                                                             {isHighPriority && (
@@ -769,6 +1474,70 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                                                         </div>
                                                     </div>
                                                 </div>
+                                                {/* Validation Warnings */}
+                                                {proposal.validationWarnings && proposal.validationWarnings.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                                        <div className="font-semibold text-yellow-800 mb-1">Validation Warnings:</div>
+                                                        <ul className="list-disc list-inside text-yellow-700 space-y-0.5">
+                                                            {proposal.validationWarnings.map((warning: string, idx: number) => (
+                                                                <li key={idx}>{warning}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Validation Errors */}
+                                                {proposal.validationErrors && proposal.validationErrors.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+                                                        <div className="font-semibold text-red-800 mb-1">Validation Errors:</div>
+                                                        <ul className="list-disc list-inside text-red-700 space-y-0.5">
+                                                            {proposal.validationErrors.map((error: string, idx: number) => (
+                                                                <li key={idx}>{error}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Conflicts */}
+                                                {proposal.hasConflict && proposal.conflicts && proposal.conflicts.length > 0 && (
+                                                    <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
+                                                        <div className="font-semibold text-orange-800 mb-1">⚠️ Conflicting Values Found:</div>
+                                                        <div className="space-y-2">
+                                                            {proposal.conflicts.map((conflict: any, idx: number) => (
+                                                                <div key={idx} className="border-l-2 border-orange-300 pl-2">
+                                                                    <div className="font-medium text-orange-900">
+                                                                        Alternative from {conflict.sourceQuery}:
+                                                                    </div>
+                                                                    <div className="text-orange-700 mt-0.5">
+                                                                        {typeof conflict.conflictingValue === 'object' 
+                                                                            ? JSON.stringify(conflict.conflictingValue) 
+                                                                            : String(conflict.conflictingValue)}
+                                                                    </div>
+                                                                    <div className="text-orange-600 text-xs mt-0.5">
+                                                                        Confidence: {Math.round(conflict.confidence * 100)}%
+                                                                    </div>
+                                                                    {conflict.evidence && (
+                                                                        <div className="text-orange-600 text-xs mt-0.5 italic">
+                                                                            "{conflict.evidence.substring(0, 100)}..."
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Quality indicator */}
+                                                {proposal.llmQuality && (
+                                                    <div className="mt-1 text-xs text-gray-500">
+                                                        Quality: <span className="font-medium">
+                                                            {proposal.llmQuality === 'explicit' ? '✓ Explicitly stated' :
+                                                             proposal.llmQuality === 'inferred' ? '~ Inferred' :
+                                                             '? Partial/Uncertain'}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                
                                                 <details className="mt-2">
                                                     <summary className="cursor-pointer text-purple-600 hover:text-purple-800 text-xs">
                                                         Reasoning & Sources
@@ -834,33 +1603,19 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                         </div>
                     )}
 
-                    {/* Full Report Display */}
-                    {(fullReport || port.lastDeepResearchReport) && (
+                    {/* Full Report Display Button */}
+                    {reportContent && (
                         <div className="mb-3">
                             <button
-                                onClick={() => setShowFullReport(!showFullReport)}
+                                onClick={() => {
+                                    setShowFullReport(true);
+                                    setSelectedReportIndex(null);
+                                }}
                                 className="w-full py-2 px-3 bg-white border border-purple-300 text-purple-700 text-xs font-medium rounded hover:bg-purple-100 transition-colors flex items-center justify-between"
                             >
-                                <span>{showFullReport ? 'Hide' : 'View'} Full Research Report</span>
-                                {showFullReport ? <X className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                                <span>View Full Research Report</span>
+                                <AlertTriangle className="h-3 w-3" />
                             </button>
-                            {showFullReport && (
-                                <div className="mt-2 p-3 bg-white border border-purple-200 rounded max-h-96 overflow-y-auto">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-semibold text-purple-900">Full Report</span>
-                                        <button
-                                            onClick={copyFullReport}
-                                            className="flex items-center space-x-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
-                                        >
-                                            <Copy className="h-3 w-3" />
-                                            <span>Copy</span>
-                                        </button>
-                                    </div>
-                                    <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono">
-                                        {fullReport || port.lastDeepResearchReport}
-                                    </pre>
-                                </div>
-                            )}
                         </div>
                     )}
 
@@ -874,29 +1629,32 @@ export const PortDetail = ({ port, clusters, onClose, onUpdate, onDelete }: Port
                         </button>
                     )}
                 </div>
-            </div>
+                </div>
+            )}
 
-            {/* Footer with Delete and Save buttons */}
-            <div className="px-5 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between gap-3">
-                <button
-                    onClick={handleDelete}
-                    className="px-4 py-2 bg-red-50 text-red-700 rounded-md text-sm font-medium hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                >
-                    Delete
-                </button>
-                <button
-                    onClick={handleSave}
-                    disabled={!isDirty}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isDirty
-                            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    }`}
-                >
-                    <Save className="w-4 h-4" />
-                    <span>Save</span>
-                </button>
-            </div>
+            {/* Footer with Delete and Save buttons - only show when not viewing full report */}
+            {!showFullReport && (
+                <div className="px-5 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between gap-3">
+                    <button
+                        onClick={handleDelete}
+                        className="px-4 py-2 bg-red-50 text-red-700 rounded-md text-sm font-medium hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                    >
+                        Delete
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={!isDirty}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            isDirty
+                                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                    >
+                        <Save className="w-4 h-4" />
+                        <span>Save</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

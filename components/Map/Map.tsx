@@ -2,7 +2,7 @@
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Terminal, Port, Cluster, PriorityTier } from "@/lib/types";
+import { Terminal, Port, Cluster, PriorityTier, TerminalProposal } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 // Fix for default marker icons in Next.js
@@ -19,6 +19,30 @@ const terminalIcon = L.icon({
     tooltipAnchor: [13, -28],
     className: "terminal-icon" // Optional class for additional styling
 });
+
+// Proposal icon with distinct styling (dashed border, orange/blue)
+const createProposalIcon = () => {
+    return L.divIcon({
+        className: "custom-proposal-icon",
+        html: `<div style="
+            background-color: rgba(255, 165, 0, 0.6); 
+            border: 2px dashed rgba(255, 140, 0, 0.9);
+            border-radius: 4px;
+            width: 24px; 
+            height: 30px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        ">P</div>`,
+        iconSize: [24, 30],
+        iconAnchor: [12, 30],
+        popupAnchor: [0, -30],
+    });
+};
 
 // Dynamic Port Icon (Yellow Circle with Count)
 const createPortCountIcon = (count: number) => {
@@ -98,18 +122,44 @@ const createClusterIcon = (count: number, priorityTier: PriorityTier, minCount: 
     });
 };
 
-// ... (MapProps and MapController remain unchanged)
+// Helper function to validate coordinates
+const isValidCoordinates = (lat: number, lng: number, portCountry?: string): boolean => {
+    // Check for NaN or Infinity
+    if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+        return false;
+    }
+    
+    // Check valid ranges
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return false;
+    }
+    
+    // Check for default Europe center (50.0, 10.0) - only valid if port is actually in Europe
+    // For now, we'll be lenient and allow it, but could be more strict
+    // if (lat === 50.0 && lng === 10.0 && portCountry && !isEuropeanCountry(portCountry)) {
+    //     return false;
+    // }
+    
+    return true;
+};
+
+// Helper function to filter terminals with valid coordinates
+const filterValidTerminals = (terminals: Terminal[]): Terminal[] => {
+    return terminals.filter(t => isValidCoordinates(t.latitude, t.longitude));
+};
 
 // Update Props Interface
 interface MapProps {
     terminals: Terminal[];
     ports: Port[];
     clusters: Cluster[];
+    proposals?: TerminalProposal[];
     selectedClusterId?: string;
     zoomToClusterId?: string;
     zoomToPortId?: string;
     zoomToTerminalId?: string;
     onSelectTerminal: (id: string) => void;
+    onSelectProposal?: (id: string) => void;
     onClearSelection?: () => void;
     hasActiveFilter?: boolean;
 }
@@ -121,6 +171,7 @@ const MapController = ({
     zoomToTerminalId,
     ports,
     terminals,
+    proposals,
     hasActiveFilter
 }: {
     selectedClusterId?: string;
@@ -129,6 +180,7 @@ const MapController = ({
     zoomToTerminalId?: string;
     ports: Port[];
     terminals: Terminal[];
+    proposals?: TerminalProposal[];
     hasActiveFilter?: boolean;
 }) => {
     const map = useMap();
@@ -139,18 +191,43 @@ const MapController = ({
         // Handle zoom to terminal (highest priority)
         if (zoomToTerminalId) {
             const terminal = terminals.find(t => t.id === zoomToTerminalId);
-            if (terminal) {
-                map.setView([terminal.latitude, terminal.longitude], 12, { animate: true });
+            if (terminal && isValidCoordinates(terminal.latitude, terminal.longitude)) {
+                // Calculate adaptive zoom based on nearby terminal density
+                const validTerminals = filterValidTerminals(terminals);
+                const portTerminals = validTerminals.filter(t => t.portId === terminal.portId);
+                
+                // If terminal is in a dense port (many terminals), use zoom 12
+                // If isolated, use zoom 14 for closer view
+                const zoomLevel = portTerminals.length > 5 ? 12 : 14;
+                
+                map.setView([terminal.latitude, terminal.longitude], zoomLevel, { animate: true });
                 return;
             }
         }
 
         // Handle zoom to port
         if (zoomToPortId) {
-            const portTerminals = terminals.filter(t => t.portId === zoomToPortId);
-            if (portTerminals.length > 0) {
-                const bounds = L.latLngBounds(portTerminals.map(t => [t.latitude, t.longitude]));
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+            const portTerminals = filterValidTerminals(terminals.filter(t => t.portId === zoomToPortId));
+            
+            // Filter valid proposals for this port
+            const portProposals = proposals 
+                ? proposals.filter(p => 
+                    p.portId === zoomToPortId && 
+                    p.latitude !== null && 
+                    p.longitude !== null &&
+                    isValidCoordinates(p.latitude, p.longitude)
+                )
+                : [];
+            
+            // Combine terminals and proposals for bounds calculation
+            const allLocations: Array<{ latitude: number; longitude: number }> = [
+                ...portTerminals.map(t => ({ latitude: t.latitude, longitude: t.longitude })),
+                ...portProposals.map(p => ({ latitude: p.latitude!, longitude: p.longitude! }))
+            ];
+            
+            if (allLocations.length > 0) {
+                const bounds = L.latLngBounds(allLocations.map(loc => [loc.latitude, loc.longitude]));
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
                 return;
             }
         }
@@ -158,7 +235,7 @@ const MapController = ({
         // Handle zoom to cluster
         if (zoomToClusterId) {
             const clusterPorts = ports.filter(p => p.clusterId === zoomToClusterId);
-            const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+            const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
             if (clusterTerminals.length > 0) {
                 const bounds = L.latLngBounds(clusterTerminals.map(t => [t.latitude, t.longitude]));
                 map.fitBounds(bounds, { padding: [50, 50] });
@@ -168,22 +245,25 @@ const MapController = ({
 
         // Auto-fit bounds logic for active filters
         if (hasActiveFilter && terminals.length > 0) {
-            const bounds = L.latLngBounds(terminals.map(t => [t.latitude, t.longitude]));
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-            return;
+            const validTerminals = filterValidTerminals(terminals);
+            if (validTerminals.length > 0) {
+                const bounds = L.latLngBounds(validTerminals.map(t => [t.latitude, t.longitude]));
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+                return;
+            }
         }
 
         // Handle selectedClusterId (for filter panel)
         if (selectedClusterId) {
             // Find terminals in this cluster
             const clusterPorts = ports.filter(p => p.clusterId === selectedClusterId);
-            const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+            const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
             if (clusterTerminals.length > 0) {
                 const bounds = L.latLngBounds(clusterTerminals.map(t => [t.latitude, t.longitude]));
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
         }
-    }, [selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, ports, map, terminals, hasActiveFilter]);
+    }, [selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, ports, map, terminals, proposals, hasActiveFilter]);
 
     return null;
 };
@@ -198,7 +278,7 @@ const ZoomTracker = ({ onZoomChange }: { onZoomChange: (zoom: number) => void })
     return null;
 };
 
-const Map = ({ terminals, ports, clusters, selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, onSelectTerminal, onClearSelection, hasActiveFilter }: MapProps) => {
+const Map = ({ terminals, ports, clusters, proposals, selectedClusterId, zoomToClusterId, zoomToPortId, zoomToTerminalId, onSelectTerminal, onSelectProposal, onClearSelection, hasActiveFilter }: MapProps) => {
     const [zoomLevel, setZoomLevel] = useState(4); // Default start zoom
 
     // Aggregation Logic
@@ -234,7 +314,7 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, zoomToClusterId, z
                     // Calculate min/max terminal counts across all clusters for size scaling
                     const clusterTerminalCounts = clusters.map(cluster => {
                         const clusterPorts = ports.filter(p => p.clusterId === cluster.id);
-                        const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+                        const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
                         return clusterTerminals.length;
                     }).filter(count => count > 0);
 
@@ -244,8 +324,8 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, zoomToClusterId, z
                     return clusters.map(cluster => {
                         // Find ports in this cluster
                         const clusterPorts = ports.filter(p => p.clusterId === cluster.id);
-                        // Find terminals in these ports
-                        const clusterTerminals = terminals.filter(t => clusterPorts.some(p => p.id === t.portId));
+                        // Find terminals in these ports and filter for valid coordinates
+                        const clusterTerminals = filterValidTerminals(terminals.filter(t => clusterPorts.some(p => p.id === t.portId)));
                         const terminalCount = clusterTerminals.length;
 
                         if (terminalCount === 0) return null;
@@ -293,8 +373,8 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, zoomToClusterId, z
                     // Check if this port has any visible terminals (filtered)
                     // Note: If we are in "showPorts" mode (zoomed out), we generally want to verify 
                     // if the port has terminals relevant to the dataset.
-                    // Counting terminals for this port:
-                    const portTerminals = terminals.filter(t => t.portId === port.id);
+                    // Counting terminals for this port with valid coordinates:
+                    const portTerminals = filterValidTerminals(terminals.filter(t => t.portId === port.id));
                     const terminalCount = portTerminals.length;
 
                     if (terminalCount === 0) return null;
@@ -329,37 +409,69 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, zoomToClusterId, z
                 })}
 
                 {/* Terminal Markers (Detail) */}
-                {!showPorts && !showClusters && terminals.map((terminal) => {
-                    const port = ports.find(p => p.id === terminal.portId);
-                    return (
-                        <Marker
-                            key={terminal.id}
-                            position={[terminal.latitude, terminal.longitude]}
-                            icon={terminalIcon}
-                            eventHandlers={{
-                                click: () => onSelectTerminal(terminal.id),
-                            }}
-                        >
-                            <Popup>
-                                <div className="p-1">
-                                    <h3 className="font-bold text-sm">{terminal.name}</h3>
-                                    <p className="text-xs text-gray-600">{port?.name}, {port?.country}</p>
-                                    <div className="mt-1 text-xs">
-                                        <span className="font-semibold">Capacity:</span> {terminal.capacity}
+                {!showPorts && !showClusters && terminals
+                    .filter(terminal => isValidCoordinates(terminal.latitude, terminal.longitude))
+                    .map((terminal) => {
+                        const port = ports.find(p => p.id === terminal.portId);
+                        return (
+                            <Marker
+                                key={terminal.id}
+                                position={[terminal.latitude, terminal.longitude]}
+                                icon={terminalIcon}
+                                eventHandlers={{
+                                    click: () => onSelectTerminal(terminal.id),
+                                }}
+                            >
+                                <Popup>
+                                    <div className="p-1">
+                                        <h3 className="font-bold text-sm">{terminal.name}</h3>
+                                        <p className="text-xs text-gray-600">{port?.name}, {port?.country}</p>
+                                        <div className="mt-1 text-xs">
+                                            <span className="font-semibold">Capacity:</span> {terminal.capacity}
+                                        </div>
                                     </div>
-                                    <div className="mt-1">
-                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${terminal.ispsRiskLevel === 'High' || terminal.ispsRiskLevel === 'Very High'
-                                            ? 'bg-red-100 text-red-700'
-                                            : 'bg-green-100 text-green-700'
-                                            }`}>
-                                            ISPS: {terminal.ispsRiskLevel}
-                                        </span>
+                                </Popup>
+                            </Marker>
+                        );
+                    })}
+
+                {/* Proposal Markers (only show when viewing a port) */}
+                {!showPorts && !showClusters && proposals && proposals
+                    .filter(proposal => 
+                        proposal.latitude !== null && 
+                        proposal.longitude !== null && 
+                        isValidCoordinates(proposal.latitude, proposal.longitude)
+                    )
+                    .map((proposal) => {
+                        const port = ports.find(p => p.id === proposal.portId);
+                        return (
+                            <Marker
+                                key={`proposal-${proposal.id}`}
+                                position={[proposal.latitude!, proposal.longitude!]}
+                                icon={createProposalIcon()}
+                                eventHandlers={{
+                                    click: () => {
+                                        if (onSelectProposal) {
+                                            onSelectProposal(proposal.id);
+                                        }
+                                    },
+                                }}
+                            >
+                                <Popup>
+                                    <div className="p-1">
+                                        <div className="flex items-center space-x-2 mb-1">
+                                            <h3 className="font-bold text-sm">{proposal.name}</h3>
+                                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded font-semibold">Proposal</span>
+                                        </div>
+                                        <p className="text-xs text-gray-600">{port?.name}, {port?.country}</p>
+                                        {proposal.address && (
+                                            <p className="text-xs text-gray-500 mt-1">{proposal.address}</p>
+                                        )}
                                     </div>
-                                </div>
-                            </Popup>
-                        </Marker>
-                    );
-                })}
+                                </Popup>
+                            </Marker>
+                        );
+                    })}
 
                 <MapController
                     selectedClusterId={selectedClusterId}
@@ -368,6 +480,7 @@ const Map = ({ terminals, ports, clusters, selectedClusterId, zoomToClusterId, z
                     zoomToTerminalId={zoomToTerminalId}
                     ports={ports}
                     terminals={terminals}
+                    proposals={proposals}
                     hasActiveFilter={hasActiveFilter}
                 />
             </MapContainer>

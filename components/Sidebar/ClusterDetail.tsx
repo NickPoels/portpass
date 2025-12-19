@@ -82,54 +82,6 @@ export const ClusterDetail = ({ cluster, onClose, onUpdate, onDelete }: ClusterD
                     </select>
                 </div>
 
-                {/* Identity System Section */}
-                <div className="pt-6 border-t border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Identity System</h3>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Cluster-Wide Identity System</label>
-                        <input
-                            type="text"
-                            value={formData.clusterWideIdentitySystem || ""}
-                            onChange={(e) => handleChange("clusterWideIdentitySystem", e.target.value || null)}
-                            placeholder="e.g., AlfaPass, CargoCard, Regional Badge System"
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">Dominant identity system across the cluster</p>
-                    </div>
-                </div>
-
-                {/* Governance Coordination Section */}
-                <div className="pt-6 border-t border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Governance Coordination</h3>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Regional Coordination Mechanisms</label>
-                        <textarea
-                            rows={4}
-                            value={formData.governanceCoordination || ""}
-                            onChange={(e) => handleChange("governanceCoordination", e.target.value || null)}
-                            placeholder="Enter regional coordination mechanisms, customs unions, maritime authorities, and governance structures..."
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">Regional coordination mechanisms, customs unions, maritime authorities</p>
-                    </div>
-                </div>
-
-                {/* Network Effect Indicators Section */}
-                <div className="pt-6 border-t border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Network Effects</h3>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Network Effect Indicators</label>
-                        <textarea
-                            rows={4}
-                            value={formData.networkEffectIndicators || ""}
-                            onChange={(e) => handleChange("networkEffectIndicators", e.target.value || null)}
-                            placeholder="Enter notes on shared workforce patterns, cross-terminal access, coordination bodies, and network effect potential..."
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">Shared workforce, cross-terminal access patterns, coordination bodies</p>
-                    </div>
-                </div>
-
                 {/* Strategic Notes Section */}
                 <div className="pt-6 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-900 mb-4">Strategic Notes</h3>

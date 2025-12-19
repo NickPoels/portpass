@@ -9,3 +9,6 @@ ALTER TABLE "Port" ADD COLUMN "ispsEnforcementStrength" TEXT;
 ALTER TABLE "Port" ADD COLUMN "dominantTOSSystems" TEXT;
 ALTER TABLE "Port" ADD COLUMN "dominantACSSystems" TEXT;
 ALTER TABLE "Port" ADD COLUMN "strategicNotes" TEXT;
+
+
+

@@ -81,7 +81,7 @@ const TerminalItem = ({ terminal, isSelected, onSelect, onZoom }: { terminal: Te
             />
             <div className="flex-1 min-w-0">
                 <p className="truncate font-medium">{terminal.name}</p>
-                <p className="text-[10px] text-gray-500">{terminal.cargoTypes[0] || '—'} • {terminal.ispsRiskLevel}</p>
+                <p className="text-[10px] text-gray-500">{terminal.cargoTypes[0] || '—'}</p>
             </div>
             <button
                 onClick={(e) => {

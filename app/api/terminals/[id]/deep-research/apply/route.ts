@@ -44,14 +44,8 @@ export async function PATCH(
             if (approved_fields.includes('operatorGroup') && data_to_update.operatorGroup !== undefined) {
                 updateData.operatorGroup = data_to_update.operatorGroup;
             }
-            if (approved_fields.includes('ownership') && data_to_update.ownership !== undefined) {
-                updateData.ownership = data_to_update.ownership;
-            }
             if (approved_fields.includes('capacity') && data_to_update.capacity !== undefined) {
                 updateData.capacity = data_to_update.capacity;
-            }
-            if (approved_fields.includes('ispsRiskLevel') && data_to_update.ispsRiskLevel !== undefined) {
-                updateData.ispsRiskLevel = data_to_update.ispsRiskLevel;
             }
             if (approved_fields.includes('cargoTypes') && data_to_update.cargoTypes !== undefined) {
                 updateData.cargoTypes = data_to_update.cargoTypes;
@@ -69,9 +63,7 @@ export async function PATCH(
         } else {
             // Fallback: apply all provided fields (backward compatibility)
             if (data_to_update.operatorGroup !== undefined) updateData.operatorGroup = data_to_update.operatorGroup;
-            if (data_to_update.ownership !== undefined) updateData.ownership = data_to_update.ownership;
             if (data_to_update.capacity !== undefined) updateData.capacity = data_to_update.capacity;
-            if (data_to_update.ispsRiskLevel !== undefined) updateData.ispsRiskLevel = data_to_update.ispsRiskLevel;
             if (data_to_update.cargoTypes !== undefined) updateData.cargoTypes = data_to_update.cargoTypes;
             if (data_to_update.latitude !== undefined) updateData.latitude = data_to_update.latitude;
             if (data_to_update.longitude !== undefined) updateData.longitude = data_to_update.longitude;

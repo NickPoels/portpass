@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Terminal, Port, Cluster } from "@/lib/types";
+import { Terminal, Port, Cluster, TerminalProposal } from "@/lib/types";
 
 const Map = dynamic(() => import("./Map"), {
     ssr: false,
@@ -16,11 +16,13 @@ interface MapViewProps {
     terminals: Terminal[];
     ports: Port[];
     clusters: Cluster[];
+    proposals?: TerminalProposal[];
     selectedClusterId?: string;
     zoomToClusterId?: string;
     zoomToPortId?: string;
     zoomToTerminalId?: string;
     onSelectTerminal?: (id: string) => void;
+    onSelectProposal?: (id: string) => void;
     onClearSelection?: () => void;
     hasActiveFilter?: boolean;
 }

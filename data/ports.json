@@ -1,407 +1,646 @@
 [
-    {
-        "id": "p-antwerp",
-        "name": "Antwerp",
-        "country": "Belgium",
-        "clusterId": "ANTWERP_ROTTERDAM_NSP",
-        "latitude": 51.260,
-        "longitude": 4.360,
-        "description": "Major petrochemical and container hub."
-    },
-    {
-        "id": "p-rotterdam",
-        "name": "Rotterdam",
-        "country": "Netherlands",
-        "clusterId": "ANTWERP_ROTTERDAM_NSP",
-        "latitude": 51.920,
-        "longitude": 4.135,
-        "description": "Largest port in Europe."
-    },
-    {
-        "id": "p-vlissingen",
-        "name": "Vlissingen",
-        "country": "Netherlands",
-        "clusterId": "ANTWERP_ROTTERDAM_NSP",
-        "latitude": 51.460,
-        "longitude": 3.600,
-        "description": "Major offshore wind and project cargo hub (North Sea Port)."
-    },
-    {
-        "id": "p-terneuzen",
-        "name": "Terneuzen",
-        "country": "Netherlands",
-        "clusterId": "ANTWERP_ROTTERDAM_NSP",
-        "latitude": 51.330,
-        "longitude": 3.820,
-        "description": "Chemicals and breakbulk hub (North Sea Port)."
-    },
-    {
-        "id": "p-ghent",
-        "name": "Ghent",
-        "country": "Belgium",
-        "clusterId": "ANTWERP_ROTTERDAM_NSP",
-        "latitude": 51.050,
-        "longitude": 3.730,
-        "description": "Multimodal hub for dry bulk, steel, and RoRo (North Sea Port)."
-    },
-    {
-        "id": "p-zeebrugge",
-        "name": "Zeebrugge",
-        "country": "Belgium",
-        "clusterId": "ANTWERP_ROTTERDAM_NSP",
-        "latitude": 51.340,
-        "longitude": 3.200,
-        "description": "Key RoRo and LNG hub."
-    },
-    {
-        "id": "p-algeciras",
-        "name": "Algeciras",
-        "country": "Spain",
-        "clusterId": "SPANISH_TRIAD",
-        "latitude": 36.130,
-        "longitude": -5.445,
-        "description": "Strategic transshipment hub at Gibraltar Strait."
-    },
-    {
-        "id": "p-valencia",
-        "name": "Valencia",
-        "country": "Spain",
-        "clusterId": "SPANISH_TRIAD",
-        "latitude": 39.440,
-        "longitude": -0.325,
-        "description": "Leading container port in Mediterranean."
-    },
-    {
-        "id": "p-barcelona",
-        "name": "Barcelona",
-        "country": "Spain",
-        "clusterId": "SPANISH_TRIAD",
-        "latitude": 41.335,
-        "longitude": 2.160,
-        "description": "Diverse cargo and cruise port."
-    },
-    {
-        "id": "p-genoa",
-        "name": "Genoa",
-        "country": "Italy",
-        "clusterId": "ITALIAN_LIGURIAN",
-        "latitude": 44.410,
-        "longitude": 8.920,
-        "description": "Main gateway for Northern Italy."
-    },
-    {
-        "id": "p-laspezia",
-        "name": "La Spezia",
-        "country": "Italy",
-        "clusterId": "ITALIAN_LIGURIAN",
-        "latitude": 44.105,
-        "longitude": 9.830,
-        "description": "Container focused deep-water port."
-    },
-    {
-        "id": "p-livorno",
-        "name": "Livorno",
-        "country": "Italy",
-        "clusterId": "ITALIAN_LIGURIAN",
-        "latitude": 43.555,
-        "longitude": 10.305,
-        "description": "Mixed cargo and RoRo/Pass."
-    },
-    {
-        "id": "p-sines",
-        "name": "Sines",
-        "country": "Portugal",
-        "clusterId": "PORTUGAL_ENERGY",
-        "latitude": 37.955,
-        "longitude": -8.875,
-        "description": "Deep water energy and container port."
-    },
-    {
-        "id": "p-lisbon",
-        "name": "Lisbon",
-        "country": "Portugal",
-        "clusterId": "PORTUGAL_ENERGY",
-        "latitude": 38.690,
-        "longitude": -9.150,
-        "description": "Multiple terminals in the Tagus estuary."
-    },
-    {
-        "id": "p-setubal",
-        "name": "Setúbal",
-        "country": "Portugal",
-        "clusterId": "PORTUGAL_ENERGY",
-        "latitude": 38.520,
-        "longitude": -8.880,
-        "description": "Industrial and RoRo focus."
-    },
-    {
-        "id": "p-lehavre",
-        "name": "Le Havre",
-        "country": "France",
-        "clusterId": "HAROPA",
-        "latitude": 49.475,
-        "longitude": 0.145,
-        "description": "Largest container port in France."
-    },
-    {
-        "id": "p-rouen",
-        "name": "Rouen",
-        "country": "France",
-        "clusterId": "HAROPA",
-        "latitude": 49.445,
-        "longitude": 1.060,
-        "description": "Leading grain export port."
-    },
-    {
-        "id": "p-paris",
-        "name": "Paris",
-        "country": "France",
-        "clusterId": "HAROPA",
-        "latitude": 48.945,
-        "longitude": 2.300,
-        "description": "Inland river ports complex."
-    },
-    {
-        "id": "p-hamburg",
-        "name": "Hamburg",
-        "country": "Germany",
-        "clusterId": "GERMANY_NORTH",
-        "latitude": 53.540,
-        "longitude": 9.950,
-        "description": "Germany's largest universal port."
-    },
-    {
-        "id": "p-wilhelmshaven",
-        "name": "Wilhelmshaven",
-        "country": "Germany",
-        "clusterId": "GERMANY_NORTH",
-        "latitude": 53.600,
-        "longitude": 8.130,
-        "description": "Deep water port (JadeWeserPort)."
-    },
-    {
-        "id": "p-bremerhaven",
-        "name": "Bremerhaven",
-        "country": "Germany",
-        "clusterId": "GERMANY_NORTH",
-        "latitude": 53.560,
-        "longitude": 8.550,
-        "description": "Major car and container hub."
-    },
-    {
-        "id": "p-piraeus",
-        "name": "Piraeus",
-        "country": "Greece",
-        "clusterId": "GREECE",
-        "latitude": 37.950,
-        "longitude": 23.630,
-        "description": "Largest port in Greece, COSCO operated."
-    },
-    {
-        "id": "p-thessaloniki",
-        "name": "Thessaloniki",
-        "country": "Greece",
-        "clusterId": "GREECE",
-        "latitude": 40.640,
-        "longitude": 22.930,
-        "description": "Gateway to the Balkans."
-    },
-    {
-        "id": "p-heraklion",
-        "name": "Heraklion",
-        "country": "Greece",
-        "clusterId": "GREECE",
-        "latitude": 35.345,
-        "longitude": 25.150,
-        "description": "Main port of Crete."
-    },
-    {
-        "id": "p-gdansk",
-        "name": "Gdansk",
-        "country": "Poland",
-        "clusterId": "EASTERN_SECURITY",
-        "latitude": 54.390,
-        "longitude": 18.710,
-        "description": "Fast growing Baltic container hub."
-    },
-    {
-        "id": "p-klaipeda",
-        "name": "Klaipeda",
-        "country": "Lithuania",
-        "clusterId": "EASTERN_SECURITY",
-        "latitude": 55.690,
-        "longitude": 21.145,
-        "description": "Strategic ice-free port."
-    },
-    {
-        "id": "p-riga",
-        "name": "Riga",
-        "country": "Latvia",
-        "clusterId": "EASTERN_SECURITY",
-        "latitude": 57.000,
-        "longitude": 24.080,
-        "description": "Major forestry and bulk port."
-    },
-    {
-        "id": "p-tallinn",
-        "name": "Tallinn",
-        "country": "Estonia",
-        "clusterId": "EASTERN_SECURITY",
-        "latitude": 59.500,
-        "longitude": 24.950,
-        "description": "Diverse cargo terminals."
-    },
-    {
-        "id": "p-constanta",
-        "name": "Constanta",
-        "country": "Romania",
-        "clusterId": "EASTERN_SECURITY",
-        "latitude": 44.120,
-        "longitude": 28.650,
-        "description": "Main Black Sea gateway."
-    },
-    {
-        "id": "p-varna",
-        "name": "Varna",
-        "country": "Bulgaria",
-        "clusterId": "EASTERN_SECURITY",
-        "latitude": 43.195,
-        "longitude": 27.920,
-        "description": "Varna West and East terminals."
-    },
-    {
-        "id": "p-felixstowe",
-        "name": "Felixstowe",
-        "country": "United Kingdom",
-        "clusterId": "UK_EAST_CONTAINER",
-        "latitude": 51.9606,
-        "longitude": 1.3511,
-        "description": "Largest UK container port; strong customs and Border Force presence."
-    },
-    {
-        "id": "p-london-gateway",
-        "name": "London Gateway",
-        "country": "United Kingdom",
-        "clusterId": "UK_EAST_CONTAINER",
-        "latitude": 51.5079,
-        "longitude": 0.5086,
-        "description": "Highly automated DP World terminal; strong landlord control."
-    },
-    {
-        "id": "p-tilbury",
-        "name": "Tilbury",
-        "country": "United Kingdom",
-        "clusterId": "UK_EAST_CONTAINER",
-        "latitude": 51.4626,
-        "longitude": 0.3587,
-        "description": "Diversified port with mixed cargo and lower automation."
-    },
-    {
-        "id": "p-immingham",
-        "name": "Immingham",
-        "country": "United Kingdom",
-        "clusterId": "UK_HUMBER_ENERGY",
-        "latitude": 53.6281,
-        "longitude": -0.1877,
-        "description": "UK's largest port by tonnage; critical energy and bulk hub."
-    },
-    {
-        "id": "p-hull",
-        "name": "Hull",
-        "country": "United Kingdom",
-        "clusterId": "UK_HUMBER_ENERGY",
-        "latitude": 53.7390,
-        "longitude": -0.2962,
-        "description": "Strong RoRo and offshore wind logistics footprint."
-    },
-    {
-        "id": "p-southampton",
-        "name": "Southampton",
-        "country": "United Kingdom",
-        "clusterId": "UK_SOLENT_ROPAX",
-        "latitude": 50.9049,
-        "longitude": -1.4044,
-        "description": "Major automotive, container, and cruise hub."
-    },
-    {
-        "id": "p-portsmouth",
-        "name": "Portsmouth",
-        "country": "United Kingdom",
-        "clusterId": "UK_SOLENT_ROPAX",
-        "latitude": 50.8167,
-        "longitude": -1.1030,
-        "description": "High passenger and ferry throughput; strong border control relevance."
-    },
-    {
-        "id": "p-liverpool",
-        "name": "Liverpool",
-        "country": "United Kingdom",
-        "clusterId": "UK_IRISH_SEA",
-        "latitude": 53.4046,
-        "longitude": -3.0160,
-        "description": "Key RoRo and Irish Sea trade corridor."
-    },
-    {
-        "id": "p-gothenburg",
-        "name": "Gothenburg",
-        "country": "Sweden",
-        "clusterId": "NORDIC_SCANDI_TURNTABLE",
-        "latitude": 57.7065,
-        "longitude": 11.9361,
-        "description": "Largest Nordic port; key Baltic–North Sea connector."
-    },
-    {
-        "id": "p-aarhus",
-        "name": "Aarhus",
-        "country": "Denmark",
-        "clusterId": "NORDIC_SCANDI_TURNTABLE",
-        "latitude": 56.1629,
-        "longitude": 10.2290,
-        "description": "Denmark's main container hub."
-    },
-    {
-        "id": "p-copenhagen-malmo",
-        "name": "Copenhagen/Malmö",
-        "country": "Denmark/Sweden",
-        "clusterId": "NORDIC_SCANDI_TURNTABLE",
-        "latitude": 55.6129,
-        "longitude": 12.9943,
-        "description": "Strategic Öresund hub; strong public ownership."
-    },
-    {
-        "id": "p-helsinki",
-        "name": "Helsinki",
-        "country": "Finland",
-        "clusterId": "NORDIC_GULF_FINLAND",
-        "latitude": 60.1719,
-        "longitude": 24.9414,
-        "description": "High ferry and RoRo identity volumes; strategic eastern border hub."
-    },
-    {
-        "id": "p-hamina-kotka",
-        "name": "Hamina-Kotka",
-        "country": "Finland",
-        "clusterId": "NORDIC_GULF_FINLAND",
-        "latitude": 60.4667,
-        "longitude": 26.9167,
-        "description": "Key container and forest products hub."
-    },
-    {
-        "id": "p-oslo",
-        "name": "Oslo",
-        "country": "Norway",
-        "clusterId": "NORDIC_NORWAY_ENERGY",
-        "latitude": 59.9073,
-        "longitude": 10.7461,
-        "description": "Main Norwegian container gateway."
-    },
-    {
-        "id": "p-stavanger",
-        "name": "Stavanger",
-        "country": "Norway",
-        "clusterId": "NORDIC_NORWAY_ENERGY",
-        "latitude": 58.9690,
-        "longitude": 5.7331,
-        "description": "Offshore oil & gas logistics hub; high contractor density."
-    }
+  {
+    "id": "port-antwerp",
+    "name": "Antwerp",
+    "country": "Belgium",
+    "clusterId": "NORTH_SEA_CORE",
+    "description": ""
+  },
+  {
+    "id": "port-zeebrugge",
+    "name": "Zeebrugge",
+    "country": "Belgium",
+    "clusterId": "NORTH_SEA_CORE",
+    "description": ""
+  },
+  {
+    "id": "port-ghent",
+    "name": "Ghent",
+    "country": "Belgium",
+    "clusterId": "NORTH_SEA_CORE",
+    "description": "North Sea Port"
+  },
+  {
+    "id": "port-terneuzen",
+    "name": "Terneuzen",
+    "country": "Netherlands",
+    "clusterId": "NORTH_SEA_CORE",
+    "description": "North Sea Port"
+  },
+  {
+    "id": "port-vlissingen",
+    "name": "Vlissingen",
+    "country": "Netherlands",
+    "clusterId": "NORTH_SEA_CORE",
+    "description": "North Sea Port"
+  },
+  {
+    "id": "port-rotterdam",
+    "name": "Rotterdam",
+    "country": "Netherlands",
+    "clusterId": "NORTH_SEA_CORE",
+    "description": ""
+  },
+  {
+    "id": "port-moerdijk",
+    "name": "Moerdijk",
+    "country": "Netherlands",
+    "clusterId": "NORTH_SEA_CORE",
+    "description": ""
+  },
+  {
+    "id": "port-algeciras",
+    "name": "Algeciras",
+    "country": "Spain",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-valencia",
+    "name": "Valencia",
+    "country": "Spain",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-barcelona",
+    "name": "Barcelona",
+    "country": "Spain",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-bilbao",
+    "name": "Bilbao",
+    "country": "Spain",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-tarragona",
+    "name": "Tarragona",
+    "country": "Spain",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-cartagena",
+    "name": "Cartagena",
+    "country": "Spain",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-sines",
+    "name": "Sines",
+    "country": "Portugal",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-lisbon",
+    "name": "Lisbon",
+    "country": "Portugal",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-setubal",
+    "name": "Setúbal",
+    "country": "Portugal",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-vigo",
+    "name": "Vigo",
+    "country": "Spain",
+    "clusterId": "IBERIAN_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-genoa",
+    "name": "Genoa",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-la-spezia",
+    "name": "La Spezia",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-livorno",
+    "name": "Livorno",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-naples",
+    "name": "Naples",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-gioia-tauro",
+    "name": "Gioia Tauro",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-taranto",
+    "name": "Taranto",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-palermo",
+    "name": "Palermo",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-cagliari",
+    "name": "Cagliari",
+    "country": "Italy",
+    "clusterId": "ITALIAN_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-le-havre",
+    "name": "Le Havre",
+    "country": "France",
+    "clusterId": "FRENCH_STATE_LED",
+    "description": ""
+  },
+  {
+    "id": "port-rouen",
+    "name": "Rouen",
+    "country": "France",
+    "clusterId": "FRENCH_STATE_LED",
+    "description": ""
+  },
+  {
+    "id": "port-paris",
+    "name": "Paris",
+    "country": "France",
+    "clusterId": "FRENCH_STATE_LED",
+    "description": "Inland HAROPA terminals"
+  },
+  {
+    "id": "port-marseille-fos",
+    "name": "Marseille Fos",
+    "country": "France",
+    "clusterId": "FRENCH_STATE_LED",
+    "description": ""
+  },
+  {
+    "id": "port-dunkirk",
+    "name": "Dunkirk",
+    "country": "France",
+    "clusterId": "FRENCH_STATE_LED",
+    "description": ""
+  },
+  {
+    "id": "port-nantes-saint-nazaire",
+    "name": "Nantes–Saint-Nazaire",
+    "country": "France",
+    "clusterId": "FRENCH_STATE_LED",
+    "description": ""
+  },
+  {
+    "id": "port-la-rochelle",
+    "name": "La Rochelle",
+    "country": "France",
+    "clusterId": "FRENCH_STATE_LED",
+    "description": ""
+  },
+  {
+    "id": "port-hamburg",
+    "name": "Hamburg",
+    "country": "Germany",
+    "clusterId": "GERMAN_NORTH",
+    "description": ""
+  },
+  {
+    "id": "port-bremerhaven",
+    "name": "Bremerhaven",
+    "country": "Germany",
+    "clusterId": "GERMAN_NORTH",
+    "description": ""
+  },
+  {
+    "id": "port-wilhelmshaven",
+    "name": "Wilhelmshaven",
+    "country": "Germany",
+    "clusterId": "GERMAN_NORTH",
+    "description": ""
+  },
+  {
+    "id": "port-emden",
+    "name": "Emden",
+    "country": "Germany",
+    "clusterId": "GERMAN_NORTH",
+    "description": ""
+  },
+  {
+    "id": "port-rostock",
+    "name": "Rostock",
+    "country": "Germany",
+    "clusterId": "GERMAN_NORTH",
+    "description": ""
+  },
+  {
+    "id": "port-felixstowe",
+    "name": "Felixstowe",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-london-gateway",
+    "name": "London Gateway",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-tilbury",
+    "name": "Tilbury",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-southampton",
+    "name": "Southampton",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-portsmouth",
+    "name": "Portsmouth",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-liverpool",
+    "name": "Liverpool",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-immingham",
+    "name": "Immingham",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-hull",
+    "name": "Hull",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-grimsby",
+    "name": "Grimsby",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-teesport",
+    "name": "Teesport",
+    "country": "United Kingdom",
+    "clusterId": "UK_BORDER_RORO",
+    "description": ""
+  },
+  {
+    "id": "port-gothenburg",
+    "name": "Gothenburg",
+    "country": "Sweden",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-helsingborg",
+    "name": "Helsingborg",
+    "country": "Sweden",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-malmo",
+    "name": "Malmö",
+    "country": "Sweden",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-copenhagen",
+    "name": "Copenhagen",
+    "country": "Denmark",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-aarhus",
+    "name": "Aarhus",
+    "country": "Denmark",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-helsinki",
+    "name": "Helsinki",
+    "country": "Finland",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-turku",
+    "name": "Turku",
+    "country": "Finland",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-naantali",
+    "name": "Naantali",
+    "country": "Finland",
+    "clusterId": "NORDIC_BALTIC_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-oslo",
+    "name": "Oslo",
+    "country": "Norway",
+    "clusterId": "NORDIC_ENERGY_OFFSHORE",
+    "description": ""
+  },
+  {
+    "id": "port-stavanger",
+    "name": "Stavanger",
+    "country": "Norway",
+    "clusterId": "NORDIC_ENERGY_OFFSHORE",
+    "description": ""
+  },
+  {
+    "id": "port-bergen",
+    "name": "Bergen",
+    "country": "Norway",
+    "clusterId": "NORDIC_ENERGY_OFFSHORE",
+    "description": ""
+  },
+  {
+    "id": "port-mongstad",
+    "name": "Mongstad",
+    "country": "Norway",
+    "clusterId": "NORDIC_ENERGY_OFFSHORE",
+    "description": ""
+  },
+  {
+    "id": "port-kristiansund",
+    "name": "Kristiansund",
+    "country": "Norway",
+    "clusterId": "NORDIC_ENERGY_OFFSHORE",
+    "description": ""
+  },
+  {
+    "id": "port-gdansk",
+    "name": "Gdansk",
+    "country": "Poland",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-gdynia",
+    "name": "Gdynia",
+    "country": "Poland",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-szczecin-swinoujscie",
+    "name": "Szczecin–Świnoujście",
+    "country": "Poland",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-klaipeda",
+    "name": "Klaipeda",
+    "country": "Lithuania",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-riga",
+    "name": "Riga",
+    "country": "Latvia",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-ventspils",
+    "name": "Ventspils",
+    "country": "Latvia",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-tallinn",
+    "name": "Tallinn",
+    "country": "Estonia",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": "Muuga"
+  },
+  {
+    "id": "port-constanta",
+    "name": "Constanta",
+    "country": "Romania",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-varna",
+    "name": "Varna",
+    "country": "Bulgaria",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-burgas",
+    "name": "Burgas",
+    "country": "Bulgaria",
+    "clusterId": "EASTERN_EU_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-trieste",
+    "name": "Trieste",
+    "country": "Italy",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-venice",
+    "name": "Venice",
+    "country": "Italy",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-ravenna",
+    "name": "Ravenna",
+    "country": "Italy",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-koper",
+    "name": "Koper",
+    "country": "Slovenia",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-rijeka",
+    "name": "Rijeka",
+    "country": "Croatia",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-split",
+    "name": "Split",
+    "country": "Croatia",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-piraeus",
+    "name": "Piraeus",
+    "country": "Greece",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-thessaloniki",
+    "name": "Thessaloniki",
+    "country": "Greece",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-igoumenitsa",
+    "name": "Igoumenitsa",
+    "country": "Greece",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-patras",
+    "name": "Patras",
+    "country": "Greece",
+    "clusterId": "ADRIATIC_EASTMED_GATEWAY",
+    "description": ""
+  },
+  {
+    "id": "port-huelva",
+    "name": "Huelva",
+    "country": "Spain",
+    "clusterId": "WESTERN_MED_ENERGY_INDUSTRIAL",
+    "description": ""
+  },
+  {
+    "id": "port-almeria",
+    "name": "Almería",
+    "country": "Spain",
+    "clusterId": "WESTERN_MED_ENERGY_INDUSTRIAL",
+    "description": ""
+  },
+  {
+    "id": "port-basel",
+    "name": "Basel",
+    "country": "Switzerland",
+    "clusterId": "RHINE_INTERMODAL_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-strasbourg",
+    "name": "Strasbourg",
+    "country": "France",
+    "clusterId": "RHINE_INTERMODAL_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-mannheim",
+    "name": "Mannheim",
+    "country": "Germany",
+    "clusterId": "RHINE_INTERMODAL_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-ludwigshafen",
+    "name": "Ludwigshafen",
+    "country": "Germany",
+    "clusterId": "RHINE_INTERMODAL_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-karlsruhe",
+    "name": "Karlsruhe",
+    "country": "Germany",
+    "clusterId": "RHINE_INTERMODAL_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-revithoussa",
+    "name": "Revithoussa",
+    "country": "Greece",
+    "clusterId": "EASTERN_MED_LNG_SECURITY",
+    "description": "Athens LNG"
+  },
+  {
+    "id": "port-alexandroupolis",
+    "name": "Alexandroupolis",
+    "country": "Greece",
+    "clusterId": "EASTERN_MED_LNG_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-limassol",
+    "name": "Limassol",
+    "country": "Cyprus",
+    "clusterId": "EASTERN_MED_LNG_SECURITY",
+    "description": ""
+  },
+  {
+    "id": "port-vasilikos",
+    "name": "Vasilikos",
+    "country": "Cyprus",
+    "clusterId": "EASTERN_MED_LNG_SECURITY",
+    "description": "Energy terminals"
+  },
+  {
+    "id": "port-malta-freeport",
+    "name": "Malta Freeport",
+    "country": "Malta",
+    "clusterId": "CENTRAL_MED_TRANSSHIPMENT",
+    "description": ""
+  }
 ]

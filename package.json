@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:reset": "npx tsx scripts/reset-database.ts",
+    "db:seed": "npx prisma db seed",
+    "db:reset-seed": "npm run db:reset && npm run db:seed",
+    "verify:port-cluster": "npx tsx scripts/verify-port-cluster.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -17,13 +21,16 @@
     "react": "^18",
     "react-dom": "^18",
     "react-hot-toast": "^2.6.0",
-    "react-leaflet": "^4.2.1"
+    "react-leaflet": "^4.2.1",
+    "react-markdown": "^10.1.0",
+    "string-similarity": "^4.0.4"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/string-similarity": "^4.0.2",
     "autoprefixer": "^10.4.22",
     "eslint": "^8",
     "eslint-config-next": "14.2.33",
